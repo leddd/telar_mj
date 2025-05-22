@@ -5,17 +5,17 @@ import adafruit_mpr121
 import pygame
 import sys
 
-# Configuration
+# config
 I2C_ADDRESSES = [0x5a, 0x5c]
 ELECTRODES_PER_SENSOR = 12
 TOTAL_ELECTRODES = ELECTRODES_PER_SENSOR * len(I2C_ADDRESSES)
 WINDOW_WIDTH = 800
-WINDOW_HEIGHT = 600
+WINDOW_HEIGHT = 150
 CIRCLE_RADIUS = 20
 CIRCLE_MARGIN = 50
 FPS = 30
 
-# Physical layout mapping (one sensor pad is offline)
+# touch layout
 TOP_ROW = [1, 3, 5, 7, 9, 11, 16, 13, 17, 18, 20]
 BOTTOM_ROW = [0, 2, 4, 6, 8, 10, 15, 12, 14, 21, 23, 22]
 
