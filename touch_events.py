@@ -12,9 +12,9 @@ DEBOUNCE_THRESHOLD = 0.05  # 50 ms
 
 # Physical layout mapping (one sensor pad is offline)
 # Top row, left to right 11 working pads:
-TOP_ROW = [1, 3, 5, 7, 9, 11, 16, 13, 17, 18, 20]
+TOP_ROW = [1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21]
 # Bottom row, left to right 12 working pads:
-BOTTOM_ROW = [0, 2, 4, 6, 8, 10, 15, 12, 14, 21, 23, 22]
+BOTTOM_ROW = [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22]
 ELECTRODE_INDICES = TOP_ROW + BOTTOM_ROW
 
 
