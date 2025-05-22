@@ -10,11 +10,9 @@ ELECTRODES_PER_SENSOR = 12
 # Debounce threshold in seconds (to filter ghost touches)
 DEBOUNCE_THRESHOLD = 0.05  # 50 ms
 
-# Physical layout mapping (one sensor pad is offline)
-# Top row, left to right 11 working pads:
-TOP_ROW = [1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21]
-# Bottom row, left to right 12 working pads:
-BOTTOM_ROW = [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22]
+# Physical layout mapping based on loom threads (left-to-right order)
+TOP_ROW = [1, 3, 5, 7, 9, 11, 16, 13, 17, 18, 20]    # 11 working pads, top row
+BOTTOM_ROW = [0, 2, 4, 6, 8, 10, 15, 12, 14, 21, 23, 22]  # 12 working pads, bottom row
 ELECTRODE_INDICES = TOP_ROW + BOTTOM_ROW
 
 
@@ -81,6 +79,7 @@ def main():
             time.sleep(0.01)  # small delay to limit CPU usage
     except KeyboardInterrupt:
         print("Exiting touch event logger.")
+
 
 if __name__ == "__main__":
     main()
