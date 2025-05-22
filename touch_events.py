@@ -11,10 +11,14 @@ ELECTRODES_PER_SENSOR = 12
 DEBOUNCE_THRESHOLD = 0.05  # 50 ms
 
 # Physical layout mapping based on loom threads (left-to-right order)
-TOP_ROW = [1, 3, 5, 7, 9, 11, 16, 13, 17, 18, 20]    # 11 working pads, top row
-BOTTOM_ROW = [0, 2, 4, 6, 8, 10, 15, 12, 14, 21, 23, 22]  # 12 working pads, bottom row
-ELECTRODE_INDICES = TOP_ROW + BOTTOM_ROW
+#TOP_ROW = [1, 3, 5, 7, 9, 11, 16, 13, 17, 18, 20]    # 11 working pads, top row
+#BOTTOM_ROW = [0, 2, 4, 6, 8, 10, 15, 12, 14, 21, 23, 22]  # 12 working pads, bottom row
 
+
+TOP_ROW = [1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 22] 
+BOTTOM_ROW = [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 23] 
+
+ELECTRODE_INDICES = TOP_ROW + BOTTOM_ROW
 
 def initialize_mpr121_sensors(addresses):
     """Initialize MPR121 sensors on the I2C bus."""
