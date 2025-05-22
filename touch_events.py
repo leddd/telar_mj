@@ -11,9 +11,12 @@ ELECTRODES_PER_SENSOR = 12
 DEBOUNCE_THRESHOLD = 0.05  # 50 ms
 
 # Physical layout mapping (one sensor pad is offline)
+# Top row, left to right 11 working pads:
 TOP_ROW = [1, 3, 5, 7, 9, 11, 16, 13, 17, 18, 20]
+# Bottom row, left to right 12 working pads:
 BOTTOM_ROW = [0, 2, 4, 6, 8, 10, 15, 12, 14, 21, 23, 22]
 ELECTRODE_INDICES = TOP_ROW + BOTTOM_ROW
+
 
 def initialize_mpr121_sensors(addresses):
     """Initialize MPR121 sensors on the I2C bus."""
