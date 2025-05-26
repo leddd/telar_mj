@@ -36,14 +36,20 @@ def init_sensors():
     return sensors
 
 def read_raw_touches(sensors):
-    """Return list of raw electrode indices currently touched."""
+    """Return list of raw electrode indices currently touched,
+       ignoring any intermittent I/O errors."""
     out = []
     for si, sensor in enumerate(sensors):
         base = si * ELECTRODES_PER_IC
         for i in range(ELECTRODES_PER_IC):
-            if sensor[i].value:
-                out.append(base + i)
+            try:
+                if sensor[i].value:
+                    out.append(base + i)
+            except OSError as e:
+                # skip this electrode on I²C failure
+                print(f"I2C read error on sensor {si} chan {i}: {e}")
     return out
+
 
 # Debounce state
 _last_raw    = {idx: False for idx in RAW_INDICES}
