@@ -3,6 +3,14 @@ import random
 import math
 from pyo import *
 
+
+# Force ALSA playback only (duplex=0), 2 channels out
+s = Server(audio='alsa', duplex=0, nchnls=2).boot()
+s.start()
+
+# now you can build your synths/players…
+
+
 # Inicializar servidor de audio
 s = Server().boot()
 s.start()
