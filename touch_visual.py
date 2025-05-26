@@ -4,7 +4,6 @@ import pygame
 import numpy as np
 import termios, tty
 from adafruit_mpr121 import MPR121
-from pyo import Server
 from pygame.locals import QUIT
 
 # ——————————————————————————————————————————————————————————————
@@ -60,10 +59,6 @@ screen = pygame.display.set_mode((1000, 600))
 pygame.display.set_caption("Curvas Bézier Interactivas y Sonido Estéreo")
 clock = pygame.time.Clock()
 WHITE, BLACK = (255,255,255), (0,0,0)
-
-# pyo server (ALSA, output-only)
-s = Server(audio='alsa', duplex=0, nchnls=2, sr=44100, buffersize=1024, latency=0.05).boot()
-s.start()
 
 def generar_sonido_estereo(freq_L, freq_R, dur):
     t = np.linspace(0, dur, int(44100*dur), endpoint=False)
@@ -169,6 +164,5 @@ except KeyboardInterrupt:
     pass
 
 finally:
-    s.stop(); s.shutdown()
     pygame.quit()
     print("Goodbye!")
