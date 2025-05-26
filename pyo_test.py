@@ -2,18 +2,16 @@
 import sys, tty, termios, time
 from pyo import Server, Sine
 
-# Simple getch() for Linux terminal
 def getch():
     fd = sys.stdin.fileno()
     old = termios.tcgetattr(fd)
     try:
         tty.setraw(fd)
-        ch = sys.stdin.read(1)
+        return sys.stdin.read(1)
     finally:
         termios.tcsetattr(fd, termios.TCSADRAIN, old)
-    return ch
 
-# Map keys to frequencies (in Hz)
+# Map computer keys to frequencies
 key_map = {
     'a': 261.63,  # C4
     's': 293.66,  # D4
@@ -25,27 +23,32 @@ key_map = {
     'k': 523.25,  # C5
 }
 
-# Boot with a larger buffer and explicit samplerate
+# Boot pyo for ALSA output-only with a smoother buffer
 s = Server(
     audio     = 'alsa',
-    duplex    = 0,          # output only
+    duplex    = 0,
     nchnls    = 2,
-    samplerate= 44100,      # lock to 44.1 kHz
-    buffersize= 1024,       # larger buffer to smooth glitches
-    latency   = 0.05        # in seconds; you can bump to 0.1 if needed
+    sr        = 44100,   # use “sr” instead of “samplerate”
+    buffersize= 1024,
+    latency   = 0.05
 ).boot()
 s.start()
 
 sine = Sine(freq=440, mul=0).out()
 print("Press a–k for notes, q to quit.")
+
 try:
     while True:
         ch = getch()
-        if ch=='q': break
+        if ch == 'q':
+            break
         if ch in key_map:
             sine.setFreq(key_map[ch])
             sine.mul = 0.1
             time.sleep(0.5)
             sine.mul = 0
 finally:
-    s.stop(); s.shutdown()
+    # Properly stop & shutdown to avoid destructor errors
+    s.stop()
+    s.shutdown()
+    print("\nGoodbye!")
