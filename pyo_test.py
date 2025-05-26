@@ -25,30 +25,27 @@ key_map = {
     'k': 523.25,  # C5
 }
 
-# Boot pyo server (ALSA, no input, stereo out)
-s = Server(audio='alsa', duplex=0, nchnls=2).boot()
+# Boot with a larger buffer and explicit samplerate
+s = Server(
+    audio     = 'alsa',
+    duplex    = 0,          # output only
+    nchnls    = 2,
+    samplerate= 44100,      # lock to 44.1 kHz
+    buffersize= 1024,       # larger buffer to smooth glitches
+    latency   = 0.05        # in seconds; you can bump to 0.1 if needed
+).boot()
 s.start()
 
-# One sine oscillator whose freq and amp we’ll control
 sine = Sine(freq=440, mul=0).out()
-
-print("Press keys a-k for notes, q to quit.")
+print("Press a–k for notes, q to quit.")
 try:
     while True:
         ch = getch()
-        if ch == 'q':
-            break
-        freq = key_map.get(ch)
-        if freq:
-            # play note for 0.5s
-            sine.setFreq(freq)
+        if ch=='q': break
+        if ch in key_map:
+            sine.setFreq(key_map[ch])
             sine.mul = 0.1
             time.sleep(0.5)
             sine.mul = 0
-        else:
-            # ignore unrecognized keys
-            continue
 finally:
-    s.stop()
-    s.shutdown()
-    print("\nGoodbye!")
+    s.stop(); s.shutdown()
