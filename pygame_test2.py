@@ -71,11 +71,11 @@ class KeyStroke:
 
             bezier_points = bezier_curve(*animated)
 
-            # Thick base line
-            pygame.draw.lines(surface, (0, 0, 0), False, bezier_points, 2)
-
-            # Antialiased overlay
-            pygame.draw.aalines(surface, (0, 0, 0), False, bezier_points)
+            # Fake thickness with antialiasing
+            offsets = [(-0.33, -0.33), (0.33, 0.33), (0, 0)]
+            for dx, dy in offsets:
+                shifted = [(x + dx, y + dy) for (x, y) in bezier_points]
+                pygame.draw.aalines(surface, (0, 0, 0), False, shifted)
 
 # Initialize strokes
 keystrokes = [KeyStroke(i) for i in range(NUM_KEYS)]
