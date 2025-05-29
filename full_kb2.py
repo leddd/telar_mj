@@ -4,6 +4,7 @@ import random
 import sys
 import time
 from datetime import datetime
+from pathlib import Path
 from pyo import Server, SndTable, TableRead, Pan, CallAfter
 
 # Setup Pyo server
@@ -22,9 +23,31 @@ tables = [SndTable(path) for path in sample_paths]
 max_polyphony = 6
 active_voices = []
 
-# Fade configuration for visuals
-debounce_threshold = 0.05  # seconds for debounce
+# Fade and debounce configuration
+debounce_threshold = 0.05  # seconds
+time_format = "%Y-%m-%dT%H:%M:%S"
 fade_time = 0.1  # portion of animation duration used for fade
+
+# Prepare log file on Desktop with versioning
+desktop = Path.home() / "Desktop"
+desktop.mkdir(exist_ok=True)
+base_name = "session_log"
+ext = ".txt"
+i = 0
+while True:
+    name = f"{base_name}{'' if i == 0 else f'_{i}'}{ext}"
+    log_path = desktop / name
+    if not log_path.exists():
+        break
+    i += 1
+log_file = open(log_path, "a")
+
+# Event logging
+def log_event(message):
+    timestamp = datetime.now().strftime(time_format)
+    entry = f"{timestamp} - {message}\n"
+    log_file.write(entry)
+    log_file.flush()
 
 # Pygame setup
 pygame.init()
@@ -39,15 +62,6 @@ KEYS = ['a','w','s','e','d','f','t','g','y','h','u','j']
 key_map = {k: i for i, k in enumerate(KEYS)}
 NUM_KEYS = len(KEYS)
 
-# Event log
-event_log = []
-
-def log_event(message):
-    timestamp = datetime.now().isoformat()
-    entry = f"{timestamp} - {message}"
-    event_log.append(entry)
-    print(entry)
-
 # Bézier interpolation
 def bezier_curve(p0, p1, p2, p3, steps=30):
     return [
@@ -61,7 +75,7 @@ def bezier_curve(p0, p1, p2, p3, steps=30):
 class KeyStroke:
     def __init__(self, idx):
         self.idx = idx
-        self.duration = FPS * 2  # 2 seconds
+        self.duration = FPS * 2
         self.start_frame = -self.duration
         self.original_curves = []
         self.animated_curves = []
@@ -90,12 +104,8 @@ class KeyStroke:
         if frames_passed < 0 or frames_passed > self.duration:
             return
         pct = frames_passed / self.duration
-        if pct < fade_time:
-            fade = int(255 * (1 - (pct / fade_time)))
-        elif pct > 1 - fade_time:
-            fade = int(255 * ((pct - (1 - fade_time)) / fade_time))
-        else:
-            fade = 0
+        fade = int(255 * (1 - (pct / fade_time))) if pct < fade_time else \
+               int(255 * ((pct - (1 - fade_time)) / fade_time)) if pct > 1 - fade_time else 0
         color = (fade, fade, fade)
         for i, original in enumerate(self.original_curves):
             animated = self.animated_curves[i]
@@ -118,7 +128,7 @@ keystrokes = [KeyStroke(i) for i in range(NUM_KEYS)]
 frame_count = 0
 
 # Main loop
-log_event("Starting combined visual-audio session")
+log_event("Starting session")
 try:
     running = True
     while running:
@@ -153,7 +163,6 @@ try:
                     debounce_state[idx] = True
                     activation_time[idx] = now
                     keystrokes[idx].activate(frame_count)
-                    # audio trigger
                     table = random.choice(tables)
                     semitone = idx
                     pitch = 2 ** (semitone / 12.0)
@@ -168,20 +177,16 @@ try:
                         old_r.stop(); old_p.stop()
                     active_voices.append((reader, panned))
                     CallAfter(lambda r=reader, p=panned: (active_voices.remove((r,p)) if (r,p) in active_voices else None, r.stop(), p.stop()), dur)
-                    log_event(f"Touch activated on key {idx}")
+                    log_event(f"Activated key {idx}")
                 elif not debounce_raw[idx] and debounce_state[idx]:
                     debounce_state[idx] = False
                     hold = now - activation_time.get(idx, now)
-                    log_event(f"Touch deactivated on key {idx} after {hold:.3f}s hold")
+                    log_event(f"Deactivated key {idx} after {hold:.3f}s")
 except KeyboardInterrupt:
-    log_event("Session interrupted by user")
+    log_event("Interrupted by user")
 finally:
-    # Cleanup
     pygame.quit()
     s.stop()
-    # Save log to file
-    log_file = "session_log.txt"
-    with open(log_file, "w") as f:
-        f.write("\n".join(event_log))
-    print(f"Event log saved to {log_file}")
+    log_event(f"Session ended, log saved to {log_path}")
+    log_file.close()
     sys.exit()
