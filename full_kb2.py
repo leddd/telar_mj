@@ -3,10 +3,11 @@ import math
 import random
 import sys
 import time
+from datetime import datetime
 from pyo import Server, SndTable, TableRead, Pan, CallAfter
 
 # Setup Pyo server
-s = Server(duplex=0, buffersize=512).boot().start()
+s = Server(duplex=0, buffersize=1024).boot().start()
 
 # Preload samples
 sample_paths = [
@@ -22,8 +23,8 @@ max_polyphony = 6
 active_voices = []
 
 # Fade configuration for visuals
-fade_time = 0.1  # portion of animation duration used for fade (0.0 to 0.5)
 debounce_threshold = 0.05  # seconds for debounce
+fade_time = 0.1  # portion of animation duration used for fade
 
 # Pygame setup
 pygame.init()
@@ -38,6 +39,16 @@ KEYS = ['a','w','s','e','d','f','t','g','y','h','u','j']
 key_map = {k: i for i, k in enumerate(KEYS)}
 NUM_KEYS = len(KEYS)
 
+# Event log
+event_log = []
+
+def log_event(message):
+    timestamp = datetime.now().isoformat()
+    entry = f"{timestamp} - {message}"
+    event_log.append(entry)
+    print(entry)
+
+# Bézier interpolation
 def bezier_curve(p0, p1, p2, p3, steps=30):
     return [
         (
@@ -98,7 +109,7 @@ class KeyStroke:
                 shifted = [(x+dx, y+dy) for x,y in points]
                 pygame.draw.aalines(surface, color, False, shifted)
 
-# Initialize visual and debounce states
+# Initialize states
 debounce_raw = {i: False for i in range(NUM_KEYS)}
 debounce_state = {i: False for i in range(NUM_KEYS)}
 last_change = {i: time.time() for i in range(NUM_KEYS)}
@@ -106,61 +117,71 @@ activation_time = {}
 keystrokes = [KeyStroke(i) for i in range(NUM_KEYS)]
 frame_count = 0
 
-running = True
-print("Starting combined visual-audio logger (Ctrl+C to exit)")
-while running:
-    now = time.time()
-    screen.fill((255,255,255))
-    pygame.draw.line(screen, (200,200,200), (WIDTH//2,0), (WIDTH//2,HEIGHT), 2)
-    font = pygame.font.SysFont(None,24)
-    screen.blit(font.render("Zona Izquierda", True, (150,150,150)), (WIDTH//4 - 60,20))
-    screen.blit(font.render("Zona Derecha", True, (150,150,150)), (3*WIDTH//4 - 60,20))
-    for k in keystrokes:
-        k.update(frame_count, screen)
-    pygame.display.flip()
-    clock.tick(FPS)
-    frame_count += 1
+# Main loop
+log_event("Starting combined visual-audio session")
+try:
+    running = True
+    while running:
+        now = time.time()
+        screen.fill((255,255,255))
+        pygame.draw.line(screen, (200,200,200), (WIDTH//2,0), (WIDTH//2,HEIGHT), 2)
+        font = pygame.font.SysFont(None,24)
+        screen.blit(font.render("Zona Izquierda", True, (150,150,150)), (WIDTH//4 - 60,20))
+        screen.blit(font.render("Zona Derecha", True, (150,150,150)), (3*WIDTH//4 - 60,20))
+        for k in keystrokes:
+            k.update(frame_count, screen)
+        pygame.display.flip()
+        clock.tick(FPS)
+        frame_count += 1
 
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-        elif event.type in (pygame.KEYDOWN, pygame.KEYUP):
-            key_char = pygame.key.name(event.key)
-            if key_char in key_map:
-                idx = key_map[key_char]
-                touched = (event.type == pygame.KEYDOWN)
-                if touched != debounce_raw[idx]:
-                    last_change[idx] = now
-                    debounce_raw[idx] = touched
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            elif event.type in (pygame.KEYDOWN, pygame.KEYUP):
+                key_char = pygame.key.name(event.key)
+                if key_char in key_map:
+                    idx = key_map[key_char]
+                    touched = (event.type == pygame.KEYDOWN)
+                    if touched != debounce_raw[idx]:
+                        last_change[idx] = now
+                        debounce_raw[idx] = touched
 
-    # Debounce and trigger
-    for idx in range(NUM_KEYS):
-        if (now - last_change[idx]) >= debounce_threshold:
-            if debounce_raw[idx] and not debounce_state[idx]:
-                debounce_state[idx] = True
-                activation_time[idx] = now
-                keystrokes[idx].activate(frame_count)
-                # audio
-                table = random.choice(tables)
-                semitone = idx
-                pitch = 2 ** (semitone / 12.0)
-                pan_pos = semitone / (NUM_KEYS - 1)
-                freq = table.getRate() * pitch
-                dur = table.getDur() / pitch
-                reader = TableRead(table=table, freq=freq, loop=False, mul=0.1)
-                panned = Pan(reader, pan=pan_pos).out()
-                reader.play()
-                if len(active_voices) >= max_polyphony:
-                    oldest_reader, oldest_pan = active_voices.pop(0)
-                    oldest_reader.stop(); oldest_pan.stop()
-                active_voices.append((reader, panned))
-                CallAfter(lambda r=reader, p=panned: (active_voices.remove((r,p)) if (r,p) in active_voices else None, r.stop(), p.stop()), dur)
-                print(f"Touch activated on key {idx}")
-            elif not debounce_raw[idx] and debounce_state[idx]:
-                debounce_state[idx] = False
-                hold = now - activation_time.get(idx, now)
-                print(f"Touch deactivated on key {idx} after {hold:.3f}s hold")
-
-pygame.quit()
-s.stop()
-sys.exit()
+        # Debounce logic
+        for idx in range(NUM_KEYS):
+            if (now - last_change[idx]) >= debounce_threshold:
+                if debounce_raw[idx] and not debounce_state[idx]:
+                    debounce_state[idx] = True
+                    activation_time[idx] = now
+                    keystrokes[idx].activate(frame_count)
+                    # audio trigger
+                    table = random.choice(tables)
+                    semitone = idx
+                    pitch = 2 ** (semitone / 12.0)
+                    pan_pos = semitone / (NUM_KEYS - 1)
+                    freq = table.getRate() * pitch
+                    dur = table.getDur() / pitch
+                    reader = TableRead(table=table, freq=freq, loop=False, mul=0.1)
+                    panned = Pan(reader, pan=pan_pos).out()
+                    reader.play()
+                    if len(active_voices) >= max_polyphony:
+                        old_r, old_p = active_voices.pop(0)
+                        old_r.stop(); old_p.stop()
+                    active_voices.append((reader, panned))
+                    CallAfter(lambda r=reader, p=panned: (active_voices.remove((r,p)) if (r,p) in active_voices else None, r.stop(), p.stop()), dur)
+                    log_event(f"Touch activated on key {idx}")
+                elif not debounce_raw[idx] and debounce_state[idx]:
+                    debounce_state[idx] = False
+                    hold = now - activation_time.get(idx, now)
+                    log_event(f"Touch deactivated on key {idx} after {hold:.3f}s hold")
+except KeyboardInterrupt:
+    log_event("Session interrupted by user")
+finally:
+    # Cleanup
+    pygame.quit()
+    s.stop()
+    # Save log to file
+    log_file = "session_log.txt"
+    with open(log_file, "w") as f:
+        f.write("\n".join(event_log))
+    print(f"Event log saved to {log_file}")
+    sys.exit()
