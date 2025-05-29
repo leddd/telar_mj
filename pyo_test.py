@@ -1,6 +1,6 @@
 from pyo import *
 import random
-import wx
+import tkinter as tk
 
 # 1) Boot server
 s = Server(duplex=0).boot().start()
@@ -15,42 +15,45 @@ sounds = [
 
 # work here!!
 
-# Mapping 12 keys to semitone offsets from C
+import tkinter as tk
+
+# 12-key mapping: A to J and W, E, T, Y, U for black keys
 key_map = {
-    ord('A'): 0,
-    ord('W'): 1,
-    ord('S'): 2,
-    ord('E'): 3,
-    ord('D'): 4,
-    ord('F'): 5,
-    ord('T'): 6,
-    ord('G'): 7,
-    ord('Y'): 8,
-    ord('H'): 9,
-    ord('U'): 10,
-    ord('J'): 11
+    'a': 0,
+    'w': 1,
+    's': 2,
+    'e': 3,
+    'd': 4,
+    'f': 5,
+    't': 6,
+    'g': 7,
+    'y': 8,
+    'h': 9,
+    'u': 10,
+    'j': 11
 }
 
-# Base frequency (C)
-base_freq = 261.63
+base_freq = 261.63  # C4
 
-class KeyboardFrame(wx.Frame):
-    def __init__(self):
-        wx.Frame.__init__(self, None, title="12-note Keyboard", size=(300, 100))
-        panel = wx.Panel(self)
-        self.Bind(wx.EVT_CHAR_HOOK, self.onKey)
-        self.Show()
+def on_key(event):
+    key = event.char.lower()
+    if key in key_map:
+        semitone = key_map[key]
+        pitch = 2 ** (semitone / 12)
+        sample = random.choice(sounds)
+        SfPlayer(sample, speed=pitch, loop=False, mul=0.5).out()
 
-    def onKey(self, event):
-        key_code = event.GetKeyCode()
-        if key_code in key_map:
-            semitone = key_map[key_code]
-            pitch_factor = 2 ** (semitone / 12.0)
-            path = random.choice(sounds)
-            SfPlayer(path, speed=pitch_factor, loop=False, mul=0.5).out()
-        event.Skip()
+# Simple Tkinter window
+root = tk.Tk()
+root.title("12-note Keyboard")
+root.geometry("300x100")
+label = tk.Label(root, text="Click here and press A–J / W–U keys")
+label.pack(pady=30)
 
-# Launch GUI with key listener
-app = wx.App(False)
-frame = KeyboardFrame()
+root.bind("<Key>", on_key)
+
+# Prevent GUI lockup
+root.after(10, lambda: None)
+
+# Start pyo GUI and tkinter
 s.gui(locals())
