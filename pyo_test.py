@@ -2,17 +2,17 @@ import tkinter as tk
 from pyo import *
 import random
 
-# Start server with small buffer to reduce latency
+# Start server
 s = Server(duplex=0, buffersize=512).boot().start()
 
-# Preload samples into memory
+# Preload samples
 sample_paths = [
     "sound/S1.1.wav",
     "sound/S1.2.wav",
     "sound/S1.3.wav",
     "sound/S1.4.wav",
 ]
-tables = [SndTable(path) for path in sample_paths]
+tables = [(SndTable(path), path) for path in sample_paths]
 
 # Key mapping
 key_map = {
@@ -22,37 +22,51 @@ key_map = {
 }
 
 base_freq = 261.63
+max_polyphony = 6
+active_voices = []
+pressed_keys = set()
 
-# Active readers for optional debugging (not needed for cleanup)
-active_readers = []
-
-def on_key(event):
+def on_key_press(event):
     key = event.char.lower()
-    if key in key_map:
-        semitone = key_map[key]
-        pitch = 2 ** (semitone / 12.0)
-        table = random.choice(tables)
-        pan_pos = semitone / 11.0
+    if key not in key_map or key in pressed_keys:
+        return
 
-        freq = table.getRate() * pitch
-        dur = table.getDur() / pitch
+    pressed_keys.add(key)
 
-        # Create and play the TableRead
-        reader = TableRead(table=table, freq=freq, loop=False, mul=0.1)
-        panned = Pan(reader, pan=pan_pos).out()
-        reader.play()
+    semitone = key_map[key]
+    pitch = 2 ** (semitone / 12.0)
+    (table, path) = random.choice(tables)
+    pan_pos = semitone / 11.0
 
-        # Automatically stop after sample ends
-        def cleanup():
-            reader.stop()
-            panned.stop()
-        CallAfter(cleanup, dur)
+    freq = table.getRate() * pitch
+    dur = table.getDur() / pitch
 
-        active_readers.append(reader)
+    reader = TableRead(table=table, freq=freq, loop=False, mul=0.1)
+    panned = Pan(reader, pan=pan_pos).out()
+    reader.play()
 
-        print(f"Played: {table.getPath()} | pitch={pitch:.2f} | pan={pan_pos:.2f} | dur={dur:.2f}s")
+    if len(active_voices) >= max_polyphony:
+        oldest_reader, oldest_pan = active_voices.pop(0)
+        oldest_reader.stop()
+        oldest_pan.stop()
 
-# Tkinter GUI
+    active_voices.append((reader, panned))
+
+    def cleanup():
+        if (reader, panned) in active_voices:
+            active_voices.remove((reader, panned))
+        reader.stop()
+        panned.stop()
+    CallAfter(cleanup, dur)
+
+    print(f"Played: {path} | pitch={pitch:.2f} | pan={pan_pos:.2f} | dur={dur:.2f}s")
+
+def on_key_release(event):
+    key = event.char.lower()
+    if key in pressed_keys:
+        pressed_keys.remove(key)
+
+# GUI
 root = tk.Tk()
 root.title("12-note keyboard")
 root.geometry("400x100")
@@ -60,7 +74,8 @@ root.geometry("400x100")
 label = tk.Label(root, text="Click here and press a–j / w,e,t,y,u", font=("Arial", 12))
 label.pack(pady=20)
 
-root.bind("<Key>", on_key)
+root.bind("<KeyPress>", on_key_press)
+root.bind("<KeyRelease>", on_key_release)
 root.after(10, lambda: None)
 
 s.gui(locals())
