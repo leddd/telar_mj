@@ -11,6 +11,9 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Bezier Key Visualizer")
 clock = pygame.time.Clock()
 
+# Fade configuration
+fade_time = 0.1  # portion of animation duration used for fade (0.0 to 0.5)
+
 # Key mapping
 KEYS = ['a','w','s','e','d','f','t','g','y','h','u','j']
 NUM_KEYS = len(KEYS)
@@ -59,6 +62,16 @@ class KeyStroke:
         if frames_passed < 0 or frames_passed > self.duration:
             return
 
+        # Calculate grayscale fade
+        pct = frames_passed / self.duration
+        if pct < fade_time:
+            fade = int(255 * (1 - (pct / fade_time)))
+        elif pct > 1 - fade_time:
+            fade = int(255 * ((pct - (1 - fade_time)) / fade_time))
+        else:
+            fade = 0
+        color = (fade, fade, fade)
+
         for i in range(len(self.original_curves)):
             original = self.original_curves[i]
             animated = self.animated_curves[i]
@@ -71,11 +84,11 @@ class KeyStroke:
 
             bezier_points = bezier_curve(*animated)
 
-            # Thick base line
-            pygame.draw.lines(surface, (0, 0, 0), False, bezier_points, 2)
-
-            # Antialiased overlay
-            pygame.draw.aalines(surface, (0, 0, 0), False, bezier_points)
+            # Fake thickness with antialiasing
+            offsets = [(-0.33, -0.33), (0.33, 0.33), (0, 0)]
+            for dx, dy in offsets:
+                shifted = [(x + dx, y + dy) for (x, y) in bezier_points]
+                pygame.draw.aalines(surface, color, False, shifted)
 
 # Initialize strokes
 keystrokes = [KeyStroke(i) for i in range(NUM_KEYS)]
