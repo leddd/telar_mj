@@ -1,6 +1,6 @@
-from pyo import *
+from pyo_test import *
 
-s = Server().boot()
+s = Server(duplex=0).boot()
 
 path = SNDS_PATH + "/sound/S1.1.wav"
 
