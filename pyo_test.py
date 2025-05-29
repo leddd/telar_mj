@@ -1,5 +1,6 @@
 from pyo import *
 import random
+import wx
 
 # 1) Boot server
 s = Server(duplex=0).boot().start()
@@ -14,36 +15,42 @@ sounds = [
 
 # work here!!
 
-# 3) Mapping keys to semitone steps (C to B)
+# Mapping 12 keys to semitone offsets from C
 key_map = {
-    'a': 0,   # C
-    'w': 1,   # C#
-    's': 2,   # D
-    'e': 3,   # D#
-    'd': 4,   # E
-    'f': 5,   # F
-    't': 6,   # F#
-    'g': 7,   # G
-    'y': 8,   # G#
-    'h': 9,   # A
-    'u': 10,  # A#
-    'j': 11   # B
+    ord('A'): 0,
+    ord('W'): 1,
+    ord('S'): 2,
+    ord('E'): 3,
+    ord('D'): 4,
+    ord('F'): 5,
+    ord('T'): 6,
+    ord('G'): 7,
+    ord('Y'): 8,
+    ord('H'): 9,
+    ord('U'): 10,
+    ord('J'): 11
 }
 
-# 4) Base frequency and pitch calculation
-base_freq = 261.63  # Middle C (C4)
+# Base frequency (C)
+base_freq = 261.63
 
-# 5) Key press callback
-def play_note(event):
-    key = event.key
-    if key in key_map:
-        semitone = key_map[key]
-        freq = base_freq * (2 ** (semitone / 12.0))
-        snd_path = random.choice(sounds)
-        sf = SfPlayer(snd_path, speed=freq/base_freq, loop=False, mul=0.5).out()
+class KeyboardFrame(wx.Frame):
+    def __init__(self):
+        wx.Frame.__init__(self, None, title="12-note Keyboard", size=(300, 100))
+        panel = wx.Panel(self)
+        self.Bind(wx.EVT_CHAR_HOOK, self.onKey)
+        self.Show()
 
-# 6) Bind key event
-s.setCallback(play_note)
+    def onKey(self, event):
+        key_code = event.GetKeyCode()
+        if key_code in key_map:
+            semitone = key_map[key_code]
+            pitch_factor = 2 ** (semitone / 12.0)
+            path = random.choice(sounds)
+            SfPlayer(path, speed=pitch_factor, loop=False, mul=0.5).out()
+        event.Skip()
 
-# GUI
+# Launch GUI with key listener
+app = wx.App(False)
+frame = KeyboardFrame()
 s.gui(locals())
