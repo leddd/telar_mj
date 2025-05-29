@@ -22,6 +22,17 @@ tables = [SndTable(path) for path in sample_paths]
 # Audio configuration
 max_polyphony = 6
 active_voices = []
+# Tuning parameters
+# Define symmetric semitone range around the sample's original pitch
+# range_semitones = how many semitones above and below center (default 11 for ±11 semitones)
+range_semitones = 11
+# Define root note frequency in Hz (samples are recorded at this pitch)
+root_frequency = 261.63  # C4 by default
+# Compute semitone offset list spanning from -range_semitones to +range_semitones over NUM_KEYS zones
+semitone_list = [
+    -range_semitones + i * (2 * range_semitones) / (NUM_KEYS - 1)
+    for i in range(NUM_KEYS)
+]
 
 # Fade and debounce configuration
 debounce_threshold = 0.05  # seconds
@@ -164,7 +175,7 @@ try:
                     activation_time[idx] = now
                     keystrokes[idx].activate(frame_count)
                     table = random.choice(tables)
-                    semitone = idx
+                    semitone = semitone_list[idx]  # use tunable semitone offset
                     pitch = 2 ** (semitone / 12.0)
                     pan_pos = semitone / (NUM_KEYS - 1)
                     freq = table.getRate() * pitch
