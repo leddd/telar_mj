@@ -28,6 +28,11 @@ debounce_threshold = 0.05  # seconds
 time_format = "%Y-%m-%dT%H:%M:%S"
 fade_time = 0.1  # portion of animation duration used for fade
 
+# Pitch mapping configuration
+transpose_semitones = 0      # Shift up/down in semitones
+pitch_range = 24             # Total range covered by all keys (in semitone steps)
+root_pitch_factor = 1.0      # Neutral pitch factor (samples are assumed to be in C4)
+
 # Prepare log file on Desktop with versioning
 desktop = Path.home() / "Desktop"
 desktop.mkdir(exist_ok=True)
@@ -164,14 +169,21 @@ try:
                     activation_time[idx] = now
                     keystrokes[idx].activate(frame_count)
                     table = random.choice(tables)
-                    semitone = idx
-                    pitch = 2 ** (semitone / 12.0)
-                    pan_pos = semitone / (NUM_KEYS - 1)
-                    freq = table.getRate() * pitch
-                    dur = table.getDur() / pitch
+
+                    # Pitch calculation (centered and scaled in semitones)
+                    half_keys = (NUM_KEYS - 1) / 2
+                    relative_pos = (idx - half_keys) / half_keys
+                    pitch_shift = relative_pos * (pitch_range / 2) + transpose_semitones
+                    pitch_factor = 2 ** (pitch_shift / 12.0)
+
+                    freq = table.getRate() * pitch_factor  # Use sample's natural rate
+                    dur = table.getDur() / pitch_factor    # Duration adjusts accordingly
+
+                    pan_pos = idx / (NUM_KEYS - 1)
                     reader = TableRead(table=table, freq=freq, loop=False, mul=0.1)
                     panned = Pan(reader, pan=pan_pos).out()
                     reader.play()
+
                     if len(active_voices) >= max_polyphony:
                         old_r, old_p = active_voices.pop(0)
                         old_r.stop(); old_p.stop()
