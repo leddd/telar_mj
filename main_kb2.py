@@ -170,10 +170,9 @@ try:
                     keystrokes[idx].activate(frame_count)
                     table = random.choice(tables)
 
-                    # Pitch calculation (centered and scaled in semitones)
-                    half_keys = (NUM_KEYS - 1) / 2
-                    relative_pos = (idx - half_keys) / half_keys
-                    pitch_shift = relative_pos * (pitch_range / 2) + transpose_semitones
+                    # Pitch calculation (spread evenly over range)
+                    pitch_step = pitch_range / (NUM_KEYS - 1)
+                    pitch_shift = idx * pitch_step + transpose_semitones
                     pitch_factor = 2 ** (pitch_shift / 12.0)
 
                     freq = table.getRate() * pitch_factor  # Use sample's natural rate
