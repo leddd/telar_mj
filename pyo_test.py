@@ -12,31 +12,38 @@ sounds = [
     "sound/S1.4.wav",
 ]
 
-# 3) Key → semitone
+# work here!!
+
+# 3) Mapping keys to semitone steps (C to B)
 key_map = {
-    'a': 0,
-    's': 1,
-    'd': 2,
-    'f': 3,
-    'g': 4,
-    'h': 5,
-    'j': 6,
-    'k': 7,
-    'l': 8,
-    ';': 9,
-    "'": 10,
-    'z': 11,
+    'a': 0,   # C
+    'w': 1,   # C#
+    's': 2,   # D
+    'e': 3,   # D#
+    'd': 4,   # E
+    'f': 5,   # F
+    't': 6,   # F#
+    'g': 7,   # G
+    'y': 8,   # G#
+    'h': 9,   # A
+    'u': 10,  # A#
+    'j': 11   # B
 }
 
-# 4) Key callback
-def play_note(evt):
-    key = evt.char  # FIXED: use .char instead of .key
+# 4) Base frequency and pitch calculation
+base_freq = 261.63  # Middle C (C4)
+
+# 5) Key press callback
+def play_note(event):
+    key = event.key
     if key in key_map:
         semitone = key_map[key]
-        pitch = 2 ** (semitone / 12)
-        SfPlayer(random.choice(sounds), speed=pitch, loop=False, mul=0.4).out()
-        print(f"Pressed {key} → +{semitone} st → pitch factor {pitch:.2f}")
+        freq = base_freq * (2 ** (semitone / 12.0))
+        snd_path = random.choice(sounds)
+        sf = SfPlayer(snd_path, speed=freq/base_freq, loop=False, mul=0.5).out()
 
-# 5) Start GUI and bind
+# 6) Bind key event
+s.setCallback(play_note)
+
+# GUI
 s.gui(locals())
-s.win.bind("<Key>", play_note)  # FIXED: must call this after s.gui()
