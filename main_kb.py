@@ -31,7 +31,7 @@ fade_time = 0.1  # portion of animation duration used for fade
 # Pitch mapping configuration
 transpose_semitones = 0      # Shift up/down in semitones
 pitch_range = 24             # Total range covered by all keys (in semitone steps)
-root_freq = 261.63           # Frequency of the middle note (e.g., C4 = 261.63 Hz)
+root_freq = 1         # Frequency of the middle note (e.g., C4 = 261.63 Hz)
 
 # Prepare log file on Desktop with versioning
 desktop = Path.home() / "Desktop"
