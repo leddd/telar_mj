@@ -1,4 +1,4 @@
-from pyo_test import *
+from pyo import *
 
 s = Server(duplex=0).boot()
 
