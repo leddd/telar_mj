@@ -1,10 +1,14 @@
 import pygame
+import pygame.gfxdraw
 import random
 import math
 from pygame.math import Vector2
 
+# Initialize Pygame
+inga
 pygame.init()
 
+# Screen settings
 WIDTH, HEIGHT = 1000, 600
 FPS = 60
 NUM_KEYS = 12
@@ -15,7 +19,6 @@ pygame.display.set_caption("Visual Keyboard")
 clock = pygame.time.Clock()
 
 font = pygame.font.SysFont("Arial", 16)
-
 frame_count = 0
 
 class KeyStroke:
@@ -49,13 +52,15 @@ class KeyStroke:
             return
 
         pct = frames_passed / self.duration
+        # Fade in/out alpha
         if pct < 0.25:
-            alpha = int(pct / 0.25 * 255)
+            alpha = int((pct / 0.25) * 255)
         elif pct > 0.75:
-            alpha = int((1 - (pct - 0.75) / 0.25) * 255)
+            alpha = int(((1 - pct) / 0.25) * 255)
         else:
             alpha = 255
 
+        # Update animated points and draw curves
         for i in range(len(self.original_curves)):
             original = self.original_curves[i]
             animated = self.animated_curves[i]
@@ -66,18 +71,32 @@ class KeyStroke:
             points = [(p.x, p.y) for p in animated]
             draw_bezier(surface, points, alpha)
 
+# Bezier drawing with antialiasing and alpha support
 def draw_bezier(surface, points, alpha):
-    # Approximate bezier with many points
-    def bezier_interp(t):
-        x = (1 - t)**3 * points[0][0] + 3 * (1 - t)**2 * t * points[1][0] + 3 * (1 - t) * t**2 * points[2][0] + t**3 * points[3][0]
-        y = (1 - t)**3 * points[0][1] + 3 * (1 - t)**2 * t * points[1][1] + 3 * (1 - t) * t**2 * points[2][1] + t**3 * points[3][1]
-        return (x, y)
+    # Create a transparent surface for antialiased drawing
+    temp = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
 
-    bezier_points = [bezier_interp(t / 20) for t in range(21)]
+    # Compute interpolated points
+    bezier_points = []
+    for t in range(21):
+        u = t / 20
+        x = (1 - u)**3 * points[0][0] + 3 * (1 - u)**2 * u * points[1][0] + 3 * (1 - u) * u**2 * points[2][0] + u**3 * points[3][0]
+        y = (1 - u)**3 * points[0][1] + 3 * (1 - u)**2 * u * points[1][1] + 3 * (1 - u) * u**2 * points[2][1] + u**3 * points[3][1]
+        bezier_points.append((x, y))
+
+    # Draw antialiased lines for each segment
     for i in range(len(bezier_points) - 1):
-        pygame.draw.line(surface, (0, 0, 0, alpha), bezier_points[i], bezier_points[i + 1], 2)
+        x1, y1 = bezier_points[i]
+        x2, y2 = bezier_points[i + 1]
+        # Antialiased line with alpha
+        pygame.gfxdraw.aaline(temp, int(x1), int(y1), int(x2), int(y2), (0, 0, 0, alpha))
+        # Draw second line for thickness
+        pygame.gfxdraw.aaline(temp, int(x1), int(y1) + 1, int(x2), int(y2) + 1, (0, 0, 0, alpha))
 
-# Initialize keystrokes
+    # Blit the temp surface onto main surface
+    surface.blit(temp, (0, 0))
+
+# Initialize strokes
 keystrokes = [KeyStroke(i) for i in range(NUM_KEYS)]
 
 running = True
@@ -85,10 +104,12 @@ while running:
     screen.fill((255, 255, 255))
     frame_count += 1
 
+    # Draw divider and labels
     pygame.draw.line(screen, (200, 200, 200), (WIDTH//2, 0), (WIDTH//2, HEIGHT), 2)
     screen.blit(font.render("Zona Izquierda", True, (150, 150, 150)), (WIDTH//4 - 50, 10))
     screen.blit(font.render("Zona Derecha", True, (150, 150, 150)), (3*WIDTH//4 - 50, 10))
 
+    # Update and draw strokes
     for stroke in keystrokes:
         stroke.update(screen)
 
