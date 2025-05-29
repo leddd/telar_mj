@@ -23,6 +23,10 @@ tables = [SndTable(path) for path in sample_paths]
 max_polyphony = 6
 active_voices = []
 
+# Root note and pitch range configuration
+ROOT_FREQ = 261.63  # Frequency of C4
+SEMITONE_RANGE = 22  # Total number of semitones spanned across keys (symmetric around root)
+
 # Fade and debounce configuration
 debounce_threshold = 0.05  # seconds
 time_format = "%Y-%m-%dT%H:%M:%S"
@@ -164,14 +168,19 @@ try:
                     activation_time[idx] = now
                     keystrokes[idx].activate(frame_count)
                     table = random.choice(tables)
-                    semitone = idx
-                    pitch = 2 ** (semitone / 12.0)
-                    pan_pos = semitone / (NUM_KEYS - 1)
-                    freq = table.getRate() * pitch
+
+                    # Calculate semitone offset based on index and range
+                    offset = idx - (NUM_KEYS - 1) / 2
+                    semitone_offset = (offset / ((NUM_KEYS - 1) / 2)) * (SEMITONE_RANGE / 2)
+                    pitch = 2 ** (semitone_offset / 12.0)
+
+                    freq = ROOT_FREQ * pitch
                     dur = table.getDur() / pitch
                     reader = TableRead(table=table, freq=freq, loop=False, mul=0.1)
+                    pan_pos = idx / (NUM_KEYS - 1)
                     panned = Pan(reader, pan=pan_pos).out()
                     reader.play()
+
                     if len(active_voices) >= max_polyphony:
                         old_r, old_p = active_voices.pop(0)
                         old_r.stop(); old_p.stop()
