@@ -9,10 +9,5 @@ sf = SfPlayer("sound/S1.1.wav",
               loop=True,
               mul=0.4).out()
 
-# 3) Keep it alive.
-import time
-try:
-    while True:
-        time.sleep(1)
-except KeyboardInterrupt:
-    pass
+# 3. Enter the GUI loop
+s.gui(locals())
