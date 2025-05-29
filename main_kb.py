@@ -33,6 +33,7 @@ semitone_list = [
     -range_semitones + i * (2 * range_semitones) / (NUM_KEYS - 1)
     for i in range(NUM_KEYS)
 ]
+ (e.g. 'C4') can be documented but playback uses sample base rate
 
 # Fade and debounce configuration
 debounce_threshold = 0.05  # seconds
