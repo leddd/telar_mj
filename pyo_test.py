@@ -1,10 +1,11 @@
 from pyo import *
 
-s = Server(duplex=0).boot()
+# 1. Start the server (output only)
+s = Server(audio="alsa", duplex=0).boot()
+s.start()
 
-path = SNDS_PATH + "/sound/S1.1.wav"
+# 2. Use a simple relative path:
+sf = SfPlayer("sound/S1.1.wav", speed=[1, 0.995], loop=True, mul=0.4).out()
 
-# stereo playback with a slight shift between the two channels.
-sf = SfPlayer(path, speed=[1, 0.995], loop=True, mul=0.4).out()
-
+# 3. Enter the GUI loop
 s.gui(locals())
