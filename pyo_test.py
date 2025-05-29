@@ -1,7 +1,7 @@
 from pyo import *
 
 # 1. Start the server (output only)
-s = Server(audio="alsa", duplex=0).boot()
+s = Server(audio="alsa", duplex=0, buffersize=512).boot()
 
 path = "sound/S1.1.wav" 
 
