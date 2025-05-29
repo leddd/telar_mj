@@ -2,7 +2,7 @@ import tkinter as tk
 from pyo import *
 import random
 
-# Server boot
+# Boot server
 s = Server(duplex=0).boot().start()
 
 sounds = [
@@ -20,16 +20,20 @@ key_map = {
 
 base_freq = 261.63
 
+# Keep references to prevent garbage collection
+active_players = []
+
 def on_key(event):
     key = event.char.lower()
     if key in key_map:
         semitone = key_map[key]
         pitch = 2 ** (semitone / 12.0)
         sound = random.choice(sounds)
-        SfPlayer(sound, speed=pitch, loop=False, mul=0.5).out()
-        print(f"Played: {sound} at semitone {semitone} (pitch={pitch:.2f})")
+        player = SfPlayer(sound, speed=pitch, loop=False, mul=0.5).out()
+        active_players.append(player)  # keep a reference
+        print(f"Played: {sound} at pitch {pitch:.2f}")
 
-# Tkinter window
+# Simple Tkinter window
 root = tk.Tk()
 root.title("12-note keyboard")
 root.geometry("400x100")
@@ -37,9 +41,7 @@ root.geometry("400x100")
 label = tk.Label(root, text="Click here and press a–j / w,e,t,y,u to play", font=("Arial", 12))
 label.pack(pady=20)
 
-# Bind keypress
 root.bind("<Key>", on_key)
 
-# Start GUI
 root.after(10, lambda: None)
 s.gui(locals())
