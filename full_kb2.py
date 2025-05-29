@@ -128,6 +128,7 @@ keystrokes = [KeyStroke(i) for i in range(NUM_KEYS)]
 frame_count = 0
 
 # Main loop
+session_start = time.time()
 log_event("Starting session")
 try:
     running = True
@@ -156,7 +157,6 @@ try:
                         last_change[idx] = now
                         debounce_raw[idx] = touched
 
-        # Debounce logic
         for idx in range(NUM_KEYS):
             if (now - last_change[idx]) >= debounce_threshold:
                 if debounce_raw[idx] and not debounce_state[idx]:
@@ -187,6 +187,9 @@ except KeyboardInterrupt:
 finally:
     pygame.quit()
     s.stop()
-    log_event(f"Session ended, log saved to {log_path}")
+    total = time.time() - session_start
+    hrs, rem = divmod(total, 3600)
+    mins, secs = divmod(rem, 60)
+    log_event(f"Session ended after {int(hrs)}h{int(mins)}m{int(secs)}s, log saved to {log_path}")
     log_file.close()
     sys.exit()
