@@ -5,7 +5,7 @@ import sys
 from pyo import Server, SndTable, TableRead, Pan, CallAfter
 
 # Setup Pyo server
-s = Server(duplex=0, buffersize=512).boot().start()
+s = Server(duplex=0, buffersize=1024).boot().start()
 
 # Preload samples
 sample_paths = [
