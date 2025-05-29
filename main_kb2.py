@@ -29,10 +29,10 @@ time_format = "%Y-%m-%dT%H:%M:%S"
 fade_time = 0.1  # portion of animation duration used for fade
 
 # Pitch mapping configuration
-transpose_semitones = 0     # Shift up/down in semitones
-pitch_range = 15             # Total range covered by all keys, 23 for standard semitones
+transpose_semitones = 0      # Shift up/down in semitones
+pitch_range = 20             # Total range covered by all keys, 23 for standard semitones
 root_pitch_factor = 1.0      # Neutral pitch factor (samples are assumed to be in C4)
-pitch_randomness = 0.5       # Random variation in pitch (0 = no randomness, 1+ = more variation)
+pitch_randomness = 0.4       # Random variation in pitch (0 = no randomness, 1+ = more variation)
 
 # Prepare log file on Desktop with versioning
 desktop = Path.home() / "Desktop"
