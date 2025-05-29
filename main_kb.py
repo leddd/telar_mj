@@ -5,7 +5,7 @@ import sys
 import time
 from datetime import datetime
 from pathlib import Path
-from pyo import Server, SndTable, TableRead, Pan, CallAfter
+from pyo import Server, SndTable, SfPlayer, TableRead, Pan, CallAfter
 
 # Setup Pyo server
 s = Server(duplex=0, buffersize=1024).boot().start()
@@ -19,6 +19,12 @@ sample_paths = [
 ]
 tables = [SndTable(path) for path in sample_paths]
 
+# --- Background ambience setup (streamed) ---
+ambience_path = "sound/FX.wav"
+ambience_volume = 0.2  # 0 = silent, 1 = full volume
+# Stream the file in small chunks, looping forever
+ambience_player = SfPlayer(ambience_path, loop=True, mul=ambience_volume).out()
+
 # Audio configuration
 max_polyphony = 6
 active_voices = []
@@ -30,9 +36,9 @@ fade_time = 0.1  # portion of animation duration used for fade
 
 # Pitch mapping configuration
 transpose_semitones = 0      # Shift up/down in semitones
-pitch_range = 20             # Total range covered by all keys, 23 for standard semitones
+pitch_range = 20             # Total range covered by all keys
 root_pitch_factor = 1.0      # Neutral pitch factor (samples are assumed to be in C4)
-pitch_randomness = 0.4       # Random variation in pitch (0 = no randomness, 1+ = more variation)
+pitch_randomness = 0.4       # Random variation in pitch (0 = no randomness)
 
 # Prepare log file on Desktop with versioning
 desktop = Path.home() / "Desktop"
@@ -64,7 +70,7 @@ pygame.display.set_caption("Bezier Key Visualizer with Audio")
 clock = pygame.time.Clock()
 
 # Key mapping: define 23 keys (e.g., sensor zones)
-KEYS = list('abcdefghijklmnopqrstuvw')  # 23 unique identifiers for keys/zones
+KEYS = list('abcdefghijklmnopqrstuvw')  # 23 unique identifiers
 key_map = {k: i for i, k in enumerate(KEYS)}
 NUM_KEYS = 23  # total number of keys
 
@@ -110,8 +116,11 @@ class KeyStroke:
         if frames_passed < 0 or frames_passed > self.duration:
             return
         pct = frames_passed / self.duration
-        fade = int(255 * (1 - (pct / fade_time))) if pct < fade_time else \
-               int(255 * ((pct - (1 - fade_time)) / fade_time)) if pct > 1 - fade_time else 0
+        fade = (
+            int(255 * (1 - (pct / fade_time))) if pct < fade_time else
+            int(255 * ((pct - (1 - fade_time)) / fade_time)) if pct > 1 - fade_time else
+            0
+        )
         color = (fade, fade, fade)
         for i, original in enumerate(self.original_curves):
             animated = self.animated_curves[i]
@@ -122,7 +131,7 @@ class KeyStroke:
                 animated[j][1] = oy + dy
             points = bezier_curve(*animated)
             for dx, dy in [(-0.33, -0.33), (0.33, 0.33), (0, 0)]:
-                shifted = [(x+dx, y+dy) for x,y in points]
+                shifted = [(x+dx, y+dy) for x, y in points]
                 pygame.draw.aalines(surface, color, False, shifted)
 
 # Initialize states
@@ -174,7 +183,7 @@ try:
                     # Pitch calculation with randomness
                     pitch_step = pitch_range / (NUM_KEYS - 1)
                     base_pitch = idx * pitch_step + transpose_semitones
-                    variation = (random.uniform(-1, 1) * pitch_randomness) if pitch_randomness > 0 else 0
+                    variation = random.uniform(-1, 1) * pitch_randomness
                     pitch_shift = base_pitch + variation
                     pitch_factor = 2 ** (pitch_shift / 12.0)
 
@@ -190,7 +199,10 @@ try:
                         old_r, old_p = active_voices.pop(0)
                         old_r.stop(); old_p.stop()
                     active_voices.append((reader, panned))
-                    CallAfter(lambda r=reader, p=panned: (active_voices.remove((r,p)) if (r,p) in active_voices else None, r.stop(), p.stop()), dur)
+                    CallAfter(lambda r=reader, p=panned: (
+                        active_voices.remove((r,p)) if (r,p) in active_voices else None,
+                        r.stop(), p.stop()
+                    ), dur)
                     log_event(f"Activated key {idx}")
                 elif not debounce_raw[idx] and debounce_state[idx]:
                     debounce_state[idx] = False
