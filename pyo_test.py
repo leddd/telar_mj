@@ -1,19 +1,18 @@
 from pyo import *
 
-# 1. Start the server (output only)
-s = Server(audio="alsa", duplex=0, buffersize=256).boot()
+# 1) Boot server (output-only).
+s = Server(duplex=0).boot().start()
 
-path = "sound/S1.1.wav" 
+# 2) Play at 1.5× speed (≈ +7 semitones). Loop forever.
+sf = SfPlayer("sound/S1.1.wav",
+              speed=1.5,    # 1.0 = original pitch; 2.0 = +1 octave
+              loop=True,
+              mul=0.4).out()
 
-# Loads the sound file in RAM. Beginning and ending points
-# can be controlled with "start" and "stop" arguments.
-t = SndTable(path)
-
-# Gets the frequency relative to the table length.
-freq = t.getRate()
-
-# Simple stereo looping playback (right channel is 180 degrees out-of-phase).
-osc = Osc(table=t, freq=freq, phase=[0, 0.5], mul=0.4).out()
-
-# 3. Enter the GUI loop
-s.gui(locals())
+# 3) Keep it alive.
+import time
+try:
+    while True:
+        time.sleep(1)
+except KeyboardInterrupt:
+    pass
