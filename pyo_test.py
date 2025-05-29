@@ -2,7 +2,7 @@ import tkinter as tk
 from pyo import *
 import random
 
-# Server boot
+# Boot server
 s = Server(duplex=0).boot().start()
 
 sounds = [
@@ -20,33 +20,20 @@ key_map = {
 
 base_freq = 261.63
 
-# List to hold references to players (prevent GC)
+# Store active players to prevent GC
 active_players = []
 
-# Dummy initial input (silence) to bootstrap the mix bus
-silent = Noise(mul=0).stop()
-mix_bus = silent
-
-# Output stage: dynamic compression to prevent clipping
-master = Compress(mix_bus, thresh=-6, ratio=4, risetime=0.01, falltime=0.2, knee=0.5, outputAmp=True).out()
-
 def on_key(event):
-    global mix_bus
     key = event.char.lower()
     if key in key_map:
         semitone = key_map[key]
         pitch = 2 ** (semitone / 12.0)
         sound = random.choice(sounds)
-        player = SfPlayer(sound, speed=pitch, loop=False, mul=0.15)
+        player = SfPlayer(sound, speed=pitch, loop=False, mul=0.1).out()
         active_players.append(player)
-
-        # Combine current mix with new player
-        mix_bus = mix_bus + player
-        master.setInput(mix_bus)
-
         print(f"Played: {sound} at pitch {pitch:.2f}")
 
-# Simple Tkinter window
+# Tkinter window
 root = tk.Tk()
 root.title("12-note keyboard")
 root.geometry("400x100")
@@ -57,5 +44,4 @@ label.pack(pady=20)
 root.bind("<Key>", on_key)
 root.after(10, lambda: None)
 
-# Start GUI and Pyo GUI
 s.gui(locals())
