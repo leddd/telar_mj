@@ -5,6 +5,9 @@ import random
 # Boot server
 s = Server(duplex=0).boot().start()
 
+# Limiter to avoid clipping
+master = Compress(input=s, thresh=-6, ratio=4, risetime=0.01, falltime=0.2, knee=0.5, outputAmp=True).out()
+
 sounds = [
     "sound/S1.1.wav",
     "sound/S1.2.wav",
@@ -29,7 +32,7 @@ def on_key(event):
         semitone = key_map[key]
         pitch = 2 ** (semitone / 12.0)
         sound = random.choice(sounds)
-        player = SfPlayer(sound, speed=pitch, loop=False, mul=0.5).out()
+        player = SfPlayer(sound, speed=pitch, loop=False, mul=0.15).out()
         active_players.append(player)  # keep a reference
         print(f"Played: {sound} at pitch {pitch:.2f}")
 
