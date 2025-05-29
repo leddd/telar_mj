@@ -19,8 +19,6 @@ key_map = {
 }
 
 base_freq = 261.63
-
-# Store active players to prevent GC
 active_players = []
 
 def on_key(event):
@@ -29,11 +27,16 @@ def on_key(event):
         semitone = key_map[key]
         pitch = 2 ** (semitone / 12.0)
         sound = random.choice(sounds)
-        player = SfPlayer(sound, speed=pitch, loop=False, mul=0.1).out()
-        active_players.append(player)
-        print(f"Played: {sound} at pitch {pitch:.2f}")
 
-# Tkinter window
+        # Compute pan: 0 (left) to 1 (right)
+        pan_pos = semitone / 11.0  # 0 to 1 across the keyboard
+        sf = SfPlayer(sound, speed=pitch, loop=False, mul=0.1)
+        panned = Pan(sf, outs=2, pan=pan_pos).out()
+        
+        active_players.append(panned)
+        print(f"Played: {sound} | pitch={pitch:.2f} | pan={pan_pos:.2f}")
+
+# Tkinter UI
 root = tk.Tk()
 root.title("12-note keyboard")
 root.geometry("400x100")
