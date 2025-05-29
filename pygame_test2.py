@@ -15,6 +15,16 @@ clock = pygame.time.Clock()
 KEYS = ['a','w','s','e','d','f','t','g','y','h','u','j']
 NUM_KEYS = len(KEYS)
 
+# Bézier interpolation
+def bezier_curve(p0, p1, p2, p3, steps=30):
+    return [
+        (
+            (1 - t) ** 3 * p0[0] + 3 * (1 - t) ** 2 * t * p1[0] + 3 * (1 - t) * t ** 2 * p2[0] + t ** 3 * p3[0],
+            (1 - t) ** 3 * p0[1] + 3 * (1 - t) ** 2 * t * p1[1] + 3 * (1 - t) * t ** 2 * p2[1] + t ** 3 * p3[1]
+        )
+        for t in [i / steps for i in range(steps + 1)]
+    ]
+
 class KeyStroke:
     def __init__(self, idx):
         self.idx = idx
@@ -59,7 +69,13 @@ class KeyStroke:
                 animated[j][0] = ox + dx
                 animated[j][1] = oy + dy
 
-            pygame.draw.aalines(surface, (0, 0, 0), False, animated)
+            bezier_points = bezier_curve(*animated)
+
+            # Thick base line
+            pygame.draw.lines(surface, (0, 0, 0), False, bezier_points, 2)
+
+            # Antialiased overlay
+            pygame.draw.aalines(surface, (0, 0, 0), False, bezier_points)
 
 # Initialize strokes
 keystrokes = [KeyStroke(i) for i in range(NUM_KEYS)]
@@ -86,7 +102,6 @@ while running:
     clock.tick(FPS)
     frame_count += 1
 
-    # Input handling
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
