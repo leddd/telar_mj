@@ -2,6 +2,9 @@ import pygame
 import math
 import random
 import sys
+import time
+from datetime import datetime
+from pathlib import Path
 from pyo import Server, SndTable, TableRead, Pan, CallAfter
 
 # Setup Pyo server
@@ -17,12 +20,34 @@ sample_paths = [
 tables = [SndTable(path) for path in sample_paths]
 
 # Audio configuration
-base_freq = 261.63
 max_polyphony = 6
 active_voices = []
 
-# Fade configuration for visuals
-fade_time = 0.1  # portion of animation duration used for fade (0.0 to 0.5)
+# Fade and debounce configuration
+debounce_threshold = 0.05  # seconds
+time_format = "%Y-%m-%dT%H:%M:%S"
+fade_time = 0.1  # portion of animation duration used for fade
+
+# Prepare log file on Desktop with versioning
+desktop = Path.home() / "Desktop"
+desktop.mkdir(exist_ok=True)
+base_name = "session_log"
+ext = ".txt"
+i = 0
+while True:
+    name = f"{base_name}{'' if i == 0 else f'_{i}'}{ext}"
+    log_path = desktop / name
+    if not log_path.exists():
+        break
+    i += 1
+log_file = open(log_path, "a")
+
+# Event logging
+def log_event(message):
+    timestamp = datetime.now().strftime(time_format)
+    entry = f"{timestamp} - {message}\n"
+    log_file.write(entry)
+    log_file.flush()
 
 # Pygame setup
 pygame.init()
@@ -50,11 +75,10 @@ def bezier_curve(p0, p1, p2, p3, steps=30):
 class KeyStroke:
     def __init__(self, idx):
         self.idx = idx
-        self.duration = FPS * 2  # 2 seconds
+        self.duration = FPS * 2
         self.start_frame = -self.duration
         self.original_curves = []
         self.animated_curves = []
-
         base_x = (idx / (NUM_KEYS - 1)) * (WIDTH - 40) + 20
         base_y = HEIGHT // 2
         self.base_pos = (base_x, base_y)
@@ -62,13 +86,12 @@ class KeyStroke:
     def generate_curves(self):
         self.original_curves.clear()
         self.animated_curves.clear()
-        for _ in range(3):  # 3 curves per key
+        for _ in range(3):
             ampl = random.uniform(40, 120)
-            curve = []
-            for _ in range(4):
-                x = self.base_pos[0] + random.uniform(-ampl, ampl)
-                y = self.base_pos[1] + random.uniform(-ampl, ampl)
-                curve.append([x, y])
+            curve = [[
+                self.base_pos[0] + random.uniform(-ampl, ampl),
+                self.base_pos[1] + random.uniform(-ampl, ampl)
+            ] for _ in range(4)]
             self.original_curves.append(curve)
             self.animated_curves.append([p.copy() for p in curve])
 
@@ -80,92 +103,93 @@ class KeyStroke:
         frames_passed = frame - self.start_frame
         if frames_passed < 0 or frames_passed > self.duration:
             return
-
         pct = frames_passed / self.duration
-        if pct < fade_time:
-            fade = int(255 * (1 - (pct / fade_time)))
-        elif pct > 1 - fade_time:
-            fade = int(255 * ((pct - (1 - fade_time)) / fade_time))
-        else:
-            fade = 0
+        fade = int(255 * (1 - (pct / fade_time))) if pct < fade_time else \
+               int(255 * ((pct - (1 - fade_time)) / fade_time)) if pct > 1 - fade_time else 0
         color = (fade, fade, fade)
-
-        for i in range(len(self.original_curves)):
-            original = self.original_curves[i]
+        for i, original in enumerate(self.original_curves):
             animated = self.animated_curves[i]
-            for j in range(4):
-                ox, oy = original[j]
+            for j, (ox, oy) in enumerate(original):
                 dx = 5 * math.sin(math.radians(frame * 5 + self.idx * 20 + j * 50))
                 dy = 5 * math.cos(math.radians(frame * 7 + self.idx * 15 + j * 30))
                 animated[j][0] = ox + dx
                 animated[j][1] = oy + dy
-
-            bezier_points = bezier_curve(*animated)
-            offsets = [(-0.33, -0.33), (0.33, 0.33), (0, 0)]
-            for dx, dy in offsets:
-                shifted = [(x + dx, y + dy) for (x, y) in bezier_points]
+            points = bezier_curve(*animated)
+            for dx, dy in [(-0.33, -0.33), (0.33, 0.33), (0, 0)]:
+                shifted = [(x+dx, y+dy) for x,y in points]
                 pygame.draw.aalines(surface, color, False, shifted)
 
-# Initialize visuals
+# Initialize states
+debounce_raw = {i: False for i in range(NUM_KEYS)}
+debounce_state = {i: False for i in range(NUM_KEYS)}
+last_change = {i: time.time() for i in range(NUM_KEYS)}
+activation_time = {}
 keystrokes = [KeyStroke(i) for i in range(NUM_KEYS)]
 frame_count = 0
 
 # Main loop
-running = True
-while running:
-    screen.fill((255, 255, 255))
-    pygame.draw.line(screen, (200, 200, 200), (WIDTH // 2, 0), (WIDTH // 2, HEIGHT), 2)
+session_start = time.time()
+log_event("Starting session")
+try:
+    running = True
+    while running:
+        now = time.time()
+        screen.fill((255,255,255))
+        pygame.draw.line(screen, (200,200,200), (WIDTH//2,0), (WIDTH//2,HEIGHT), 2)
+        font = pygame.font.SysFont(None,24)
+        screen.blit(font.render("Zona Izquierda", True, (150,150,150)), (WIDTH//4 - 60,20))
+        screen.blit(font.render("Zona Derecha", True, (150,150,150)), (3*WIDTH//4 - 60,20))
+        for k in keystrokes:
+            k.update(frame_count, screen)
+        pygame.display.flip()
+        clock.tick(FPS)
+        frame_count += 1
 
-    font = pygame.font.SysFont(None, 24)
-    label_left = font.render("Zona Izquierda", True, (150, 150, 150))
-    label_right = font.render("Zona Derecha", True, (150, 150, 150))
-    screen.blit(label_left, (WIDTH // 4 - label_left.get_width() // 2, 20))
-    screen.blit(label_right, (3 * WIDTH // 4 - label_right.get_width() // 2, 20))
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            elif event.type in (pygame.KEYDOWN, pygame.KEYUP):
+                key_char = pygame.key.name(event.key)
+                if key_char in key_map:
+                    idx = key_map[key_char]
+                    touched = (event.type == pygame.KEYDOWN)
+                    if touched != debounce_raw[idx]:
+                        last_change[idx] = now
+                        debounce_raw[idx] = touched
 
-    for k in keystrokes:
-        k.update(frame_count, screen)
-
-    pygame.display.flip()
-    clock.tick(FPS)
-    frame_count += 1
-
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-        elif event.type == pygame.KEYDOWN:
-            key_char = pygame.key.name(event.key)
-            if key_char in key_map:
-                idx = key_map[key_char]
-                # Trigger visual
-                keystrokes[idx].activate(frame_count)
-                # Trigger audio
-                table = random.choice(tables)
-                semitone = idx
-                pitch = 2 ** (semitone / 12.0)
-                pan_pos = semitone / (NUM_KEYS - 1)
-                freq = table.getRate() * pitch
-                dur = table.getDur() / pitch
-
-                reader = TableRead(table=table, freq=freq, loop=False, mul=0.1)
-                panned = Pan(reader, pan=pan_pos).out()
-                reader.play()
-
-                if len(active_voices) >= max_polyphony:
-                    oldest_reader, oldest_pan = active_voices.pop(0)
-                    oldest_reader.stop()
-                    oldest_pan.stop()
-
-                active_voices.append((reader, panned))
-
-                def cleanup():
-                    if (reader, panned) in active_voices:
-                        active_voices.remove((reader, panned))
-                    reader.stop()
-                    panned.stop()
-                CallAfter(cleanup, dur)
-
-                print(f"Played: {table.path} | pitch={pitch:.2f} | pan={pan_pos:.2f} | dur={dur:.2f}s")
-
-pygame.quit()
-s.stop()
-sys.exit()
+        for idx in range(NUM_KEYS):
+            if (now - last_change[idx]) >= debounce_threshold:
+                if debounce_raw[idx] and not debounce_state[idx]:
+                    debounce_state[idx] = True
+                    activation_time[idx] = now
+                    keystrokes[idx].activate(frame_count)
+                    table = random.choice(tables)
+                    semitone = idx
+                    pitch = 2 ** (semitone / 12.0)
+                    pan_pos = semitone / (NUM_KEYS - 1)
+                    freq = table.getRate() * pitch
+                    dur = table.getDur() / pitch
+                    reader = TableRead(table=table, freq=freq, loop=False, mul=0.1)
+                    panned = Pan(reader, pan=pan_pos).out()
+                    reader.play()
+                    if len(active_voices) >= max_polyphony:
+                        old_r, old_p = active_voices.pop(0)
+                        old_r.stop(); old_p.stop()
+                    active_voices.append((reader, panned))
+                    CallAfter(lambda r=reader, p=panned: (active_voices.remove((r,p)) if (r,p) in active_voices else None, r.stop(), p.stop()), dur)
+                    log_event(f"Activated key {idx}")
+                elif not debounce_raw[idx] and debounce_state[idx]:
+                    debounce_state[idx] = False
+                    hold = now - activation_time.get(idx, now)
+                    log_event(f"Deactivated key {idx} after {hold:.3f}s")
+except KeyboardInterrupt:
+    log_event("Interrupted by user")
+finally:
+    pygame.quit()
+    s.stop()
+    total = time.time() - session_start
+    hrs, rem = divmod(total, 3600)
+    mins, secs = divmod(rem, 60)
+    log_event(f"Session ended after {int(hrs)}h{int(mins)}m{int(secs)}s, log saved to {log_path}")
+    log_file.close()
+    sys.exit()
