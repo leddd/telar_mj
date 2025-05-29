@@ -24,16 +24,11 @@ key_map = {
 base_freq = 261.63
 max_polyphony = 6
 active_voices = []
-pressed_keys = set()
 
 def on_key_press(event):
     key = event.char.lower()
     if key not in key_map:
         return
-    if key in pressed_keys:
-        return  # debounce: ignore repeat press until released
-
-    pressed_keys.add(key)
 
     semitone = key_map[key]
     pitch = 2 ** (semitone / 12.0)
@@ -63,10 +58,6 @@ def on_key_press(event):
 
     print(f"Played: {path} | pitch={pitch:.2f} | pan={pan_pos:.2f} | dur={dur:.2f}s")
 
-def on_key_release(event):
-    key = event.char.lower()
-    pressed_keys.discard(key)  # allow key to be played again
-
 # GUI
 root = tk.Tk()
 root.title("12-note keyboard")
@@ -76,7 +67,6 @@ label = tk.Label(root, text="Click here and press a–j / w,e,t,y,u", font=("Ari
 label.pack(pady=20)
 
 root.bind("<KeyPress>", on_key_press)
-root.bind("<KeyRelease>", on_key_release)
 root.after(10, lambda: None)
 
 s.gui(locals())
