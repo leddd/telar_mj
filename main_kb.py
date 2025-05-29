@@ -57,10 +57,10 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Bezier Key Visualizer with Audio")
 clock = pygame.time.Clock()
 
-# Key mapping
-KEYS = ['a','w','s','e','d','f','t','g','y','h','u','j']
+# Key mapping: define 23 keys (e.g., sensor zones)
+KEYS = list('abcdefghijklmnopqrstuvw')  # 23 unique identifiers for keys/zones
 key_map = {k: i for i, k in enumerate(KEYS)}
-NUM_KEYS = len(KEYS)
+NUM_KEYS = 23  # total number of keys
 
 # Bézier interpolation
 def bezier_curve(p0, p1, p2, p3, steps=30):
