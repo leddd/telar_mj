@@ -1,10 +1,9 @@
+from pyo import *
 import random
-from pyo import Server, SfPlayer, Metro, TrigFunc
 
-# 1) Boot & start server (output only)
-s = Server(audio="alsa", duplex=0).boot().start()
+# 1) Boot server (output-only).
+s = Server(duplex=0).boot().start()
 
-# 2) List of your four samples
 sounds = [
     "sound/S1.1.wav",
     "sound/S1.2.wav",
@@ -12,17 +11,16 @@ sounds = [
     "sound/S1.4.wav",
 ]
 
-# 3) Define a play-once function
-def play_random():
-    path = random.choice(sounds)
-    # loop=False so it only plays once
-    SfPlayer(path, speed=1.5, loop=False, mul=0.4).out()
+def random_sound():
+    return random.choice(sounds)
 
-# 4) Demo trigger: a 1 Hz metronome
-metro = Metro(time=1.0).play()
-TrigFunc(metro, play_random)
 
-# 5) (Or instead of Metro, call play_random() in your touch-sensor callback)
+# 2) Play at 1.5× speed (≈ +7 semitones). Loop forever.
+sf = SfPlayer(random_sound(),
+              speed=1.5,    # 1.0 = original pitch; 2.0 = +1 octave
+              loop=True,
+              mul=0.4).out()
+print(random_sound())
 
-# 6) Keep GUI alive if you want pyo’s console
+# 3. Enter the GUI loop
 s.gui(locals())
