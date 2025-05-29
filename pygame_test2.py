@@ -59,6 +59,16 @@ class KeyStroke:
         if frames_passed < 0 or frames_passed > self.duration:
             return
 
+        # Calculate fade as grayscale color
+        pct = frames_passed / self.duration
+        if pct < 0.25:
+            fade = int(255 * (1 - (pct / 0.25)))  # fade in
+        elif pct > 0.75:
+            fade = int(255 * ((pct - 0.75) / 0.25))  # fade out
+        else:
+            fade = 0  # full black
+        color = (fade, fade, fade)
+
         for i in range(len(self.original_curves)):
             original = self.original_curves[i]
             animated = self.animated_curves[i]
@@ -75,7 +85,7 @@ class KeyStroke:
             offsets = [(-0.33, -0.33), (0.33, 0.33), (0, 0)]
             for dx, dy in offsets:
                 shifted = [(x + dx, y + dy) for (x, y) in bezier_points]
-                pygame.draw.aalines(surface, (0, 0, 0), False, shifted)
+                pygame.draw.aalines(surface, color, False, shifted)
 
 # Initialize strokes
 keystrokes = [KeyStroke(i) for i in range(NUM_KEYS)]
