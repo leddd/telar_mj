@@ -30,7 +30,7 @@ fade_time = 0.1  # portion of animation duration used for fade
 
 # Pitch mapping configuration
 transpose_semitones = 0      # Shift up/down in semitones
-pitch_range = 24             # Total range covered by all keys (in semitone steps)
+pitch_range = 23             # Total range covered by all keys (in semitone steps)
 root_pitch_factor = 1.0      # Neutral pitch factor (samples are assumed to be in C4)
 
 # Prepare log file on Desktop with versioning
