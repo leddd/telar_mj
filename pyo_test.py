@@ -28,8 +28,10 @@ pressed_keys = set()
 
 def on_key_press(event):
     key = event.char.lower()
-    if key not in key_map or key in pressed_keys:
+    if key not in key_map:
         return
+    if key in pressed_keys:
+        return  # debounce: ignore repeat press until released
 
     pressed_keys.add(key)
 
@@ -63,8 +65,7 @@ def on_key_press(event):
 
 def on_key_release(event):
     key = event.char.lower()
-    if key in pressed_keys:
-        pressed_keys.remove(key)
+    pressed_keys.discard(key)  # allow key to be played again
 
 # GUI
 root = tk.Tk()
