@@ -37,30 +37,40 @@ remap = {
 
 
 def initialize_sensors(addresses):
-    """Initialize MPR121 sensors on the I2C bus."""
-    i2c = busio.I2C(board.SCL, board.SDA)
+    """Initialize MPR121 sensors on the I2C bus, return list (or empty on failure)."""
     sensors = []
-    for addr in addresses:
-        try:
-            sensors.append(adafruit_mpr121.MPR121(i2c, address=addr))
-        except Exception as e:
-            print(f"Failed to init sensor at {hex(addr)}: {e}")
+    try:
+        i2c = busio.I2C(board.SCL, board.SDA)
+        for addr in addresses:
+            try:
+                sensors.append(adafruit_mpr121.MPR121(i2c, address=addr))
+            except Exception as e:
+                print(f"Warning: Failed to init sensor at {hex(addr)}: {e}")
+    except Exception as e:
+        print(f"Warning: I2C initialization failed: {e}")
     return sensors
 
 
 def get_touched(sensors):
-    """Return a list of raw touched electrode indices."""
+    """Return a list of raw touched electrode indices (safely handles sensor errors)."""
     touched = []
     for si, sensor in enumerate(sensors):
         base = si * electrodes_per_sensor
-        for i in range(electrodes_per_sensor):
-            if sensor[i].value:
-                touched.append(base + i)
+        try:
+            for i in range(electrodes_per_sensor):
+                if sensor[i].value:
+                    touched.append(base + i)
+        except Exception as e:
+            print(f"Warning: Sensor read error at index {si}: {e}")
     return touched
 
 
+# --- Master volume variable ---
+master_volume = 0.75  # 0.0 = silent, 1.0 = full
+
 # --- Set up Pyo server ---
 s = Server(duplex=0, buffersize=1024).boot().start()
+s.setAmp(master_volume)  # apply master volume to entire server output
 
 # Preload samples
 sample_paths = [
@@ -73,8 +83,8 @@ tables = [SndTable(path) for path in sample_paths]
 
 # --- Background ambience setup (streamed) ---
 ambience_path = "sound/FX.wav"
-ambience_volume = 0.2  # 0 = silent, 1 = full volume
-ambience_player = SfPlayer(ambience_path, loop=True, mul=ambience_volume).out()
+ambience_volume = 0.15  # base ambience volume
+ambience_player = SfPlayer(ambience_path, loop=True, mul=ambience_volume * master_volume).out()
 
 # Audio configuration
 max_polyphony = 6
@@ -196,8 +206,7 @@ activation_time = {}
 # Initialize sensors
 sensors = initialize_sensors(i2c_addresses)
 if not sensors:
-    print("No sensors found. Exiting.")
-    sys.exit(1)
+    print("Warning: No sensors initialized; continuing without touch input.")
 
 # Main loop
 frame_count = 0
@@ -227,7 +236,10 @@ try:
                 running = False
 
         # ==== Sensor polling & debounce logic ====
-        raw_touches = get_touched(sensors)
+        raw_touches = []
+        if sensors:
+            raw_touches = get_touched(sensors)
+
         for raw_idx in electrode_indices:
             touched = raw_idx in raw_touches
 
@@ -260,7 +272,7 @@ try:
                         dur = table.getDur() / pitch_factor
 
                         pan_pos = disp_idx / (NUM_KEYS - 1)
-                        reader = TableRead(table=table, freq=freq, loop=False, mul=0.1)
+                        reader = TableRead(table=table, freq=freq, loop=False, mul=0.1 * master_volume)
                         panned = Pan(reader, pan=pan_pos).out()
                         reader.play()
 
