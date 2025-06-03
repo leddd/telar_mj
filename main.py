@@ -66,7 +66,7 @@ def get_touched(sensors):
 
 
 # --- Master volume variable ---
-master_volume = 1.8  # 0.0 = silent, 1.0 = full
+master_volume = 0.75  # 0.0 = silent, 1.0 = full
 
 # --- Set up Pyo server ---
 s = Server(duplex=0, buffersize=1024).boot().start()
@@ -83,7 +83,7 @@ tables = [SndTable(path) for path in sample_paths]
 
 # --- Background ambience setup (streamed) ---
 ambience_path = "sound/FX.wav"
-ambience_volume = 0.05  # base ambience volume
+ambience_volume = 0.15  # base ambience volume
 ambience_player = SfPlayer(ambience_path, loop=True, mul=ambience_volume * master_volume).out()
 
 # Audio configuration
@@ -96,9 +96,14 @@ fade_time = 0.1  # portion of animation duration used for fade
 
 # Pitch mapping configuration
 transpose_semitones = 0      # Shift up/down in semitones
-pitch_range = 40             # Total range covered by all keys
+pitch_range = 30             # Total range covered by all keys
 root_pitch_factor = 1.0      # Neutral pitch factor (samples are assumed to be in C4)
 pitch_randomness = 0.4       # Random variation in pitch (0 = no randomness)
+
+# Volume slope configuration
+# Lower indices quieter, higher indices louder (linear from low_factor to high_factor)
+low_factor = 0.5
+high_factor = 1.5
 
 # Prepare log file on Desktop with versioning
 desktop = Path.home() / "Desktop"
@@ -272,7 +277,9 @@ try:
                         dur = table.getDur() / pitch_factor
 
                         pan_pos = disp_idx / (NUM_KEYS - 1)
-                        reader = TableRead(table=table, freq=freq, loop=False, mul=0.1 * master_volume)
+                        # Apply linear volume modifier: lower idx quieter, higher idx louder
+                        vol_modifier = low_factor + (high_factor - low_factor) * (disp_idx / (NUM_KEYS - 1))
+                        reader = TableRead(table=table, freq=freq, loop=False, mul=0.1 * master_volume * vol_modifier)
                         panned = Pan(reader, pan=pan_pos).out()
                         reader.play()
 
