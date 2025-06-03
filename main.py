@@ -102,7 +102,7 @@ pitch_randomness = 0.4       # Random variation in pitch (0 = no randomness)
 
 # Volume slope configuration
 # Lower indices quieter, higher indices louder (linear from low_factor to high_factor)
-low_factor = 0.5
+low_factor = 2
 high_factor = 3
 
 # Prepare log file on Desktop with versioning
