@@ -101,9 +101,9 @@ root_pitch_factor = 1.0      # Neutral pitch factor (samples are assumed to be i
 pitch_randomness = 0.4       # Random variation in pitch (0 = no randomness)
 
 # Volume slope configuration
-# Lower indices quieter, higher indices louder (linear from low_factor to high_factor)
-low_factor = 2
-high_factor = 3
+# Lower pitch quieter, higher pitch louder (linear)
+low_factor = 0.5
+high_factor = 1.5
 
 # Prepare log file on Desktop with versioning
 desktop = Path.home() / "Desktop"
@@ -277,8 +277,9 @@ try:
                         dur = table.getDur() / pitch_factor
 
                         pan_pos = disp_idx / (NUM_KEYS - 1)
-                        # Apply linear volume modifier: lower idx quieter, higher idx louder
-                        vol_modifier = low_factor + (high_factor - low_factor) * (disp_idx / (NUM_KEYS - 1))
+                        # Compute normalized pitch for volume: clamp between 0 and 1
+                        normalized = max(0.0, min(1.0, pitch_shift / pitch_range))
+                        vol_modifier = low_factor + (high_factor - low_factor) * normalized
                         reader = TableRead(table=table, freq=freq, loop=False, mul=0.1 * master_volume * vol_modifier)
                         panned = Pan(reader, pan=pan_pos).out()
                         reader.play()
