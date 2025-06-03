@@ -102,8 +102,8 @@ pitch_randomness = 0.4       # Random variation in pitch
 # Volume‐vs‐pitch mapping configuration
 #    low pitches → min_pitch_volume × master_volume
 #    high pitches → max_pitch_volume × master_volume
-min_pitch_volume = 0.8
-max_pitch_volume = 1.4
+min_pitch_volume = 1.2
+max_pitch_volume = 0.8
 
 # Prepare log file on Desktop with versioning
 desktop = Path.home() / "Desktop"
