@@ -35,7 +35,6 @@ remap = {
     23: 20,
 }
 
-
 def initialize_sensors(addresses):
     """Initialize MPR121 sensors on the I2C bus, return list (or empty on failure)."""
     sensors = []
@@ -50,7 +49,6 @@ def initialize_sensors(addresses):
         print(f"Warning: I2C initialization failed: {e}")
     return sensors
 
-
 def get_touched(sensors):
     """Return a list of raw touched electrode indices (safely handles sensor errors)."""
     touched = []
@@ -64,9 +62,8 @@ def get_touched(sensors):
             print(f"Warning: Sensor read error at index {si}: {e}")
     return touched
 
-
 # --- Master volume variable ---
-master_volume = 1.8  # 0.0 = silent, 1.0 = full
+master_volume = 1.8  # 0.0 = silent, 1.0 = “nominal” output
 
 # --- Set up Pyo server ---
 s = Server(duplex=0, buffersize=1024).boot().start()
@@ -84,7 +81,9 @@ tables = [SndTable(path) for path in sample_paths]
 # --- Background ambience setup (streamed) ---
 ambience_path = "sound/FX.wav"
 ambience_volume = 0.05  # base ambience volume
-ambience_player = SfPlayer(ambience_path, loop=True, mul=ambience_volume * master_volume).out()
+ambience_player = SfPlayer(
+    ambience_path, loop=True, mul=ambience_volume * master_volume
+).out()
 
 # Audio configuration
 max_polyphony = 6
@@ -96,9 +95,15 @@ fade_time = 0.1  # portion of animation duration used for fade
 
 # Pitch mapping configuration
 transpose_semitones = 0      # Shift up/down in semitones
-pitch_range = 40             # Total range covered by all keys
-root_pitch_factor = 1.0      # Neutral pitch factor (samples are assumed to be in C4)
-pitch_randomness = 0.4       # Random variation in pitch (0 = no randomness)
+pitch_range = 40             # Total range covered by all keys (in semitones)
+root_pitch_factor = 1.0      # Neutral pitch factor (samples assumed to be in C4)
+pitch_randomness = 0.4       # Random variation in pitch
+
+# Volume‐vs‐pitch mapping configuration
+#    low pitches → min_pitch_volume × master_volume
+#    high pitches → max_pitch_volume × master_volume
+min_pitch_volume = 0.8
+max_pitch_volume = 1.4
 
 # Prepare log file on Desktop with versioning
 desktop = Path.home() / "Desktop"
@@ -114,14 +119,12 @@ while True:
     i += 1
 log_file = open(log_path, "a")
 
-
 # Event logging
 def log_event(message):
     timestamp = datetime.now().strftime(time_format)
     entry = f"{timestamp} - {message}\n"
     log_file.write(entry)
     log_file.flush()
-
 
 # Pygame setup
 pygame.init()
@@ -131,16 +134,21 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Bezier Key Visualizer with Sensor Audio")
 clock = pygame.time.Clock()
 
-# KeyStroke class and bezier helper remain unchanged
+# Bézier helper (unchanged)
 def bezier_curve(p0, p1, p2, p3, steps=30):
     return [
         (
-            (1 - t) ** 3 * p0[0] + 3 * (1 - t) ** 2 * t * p1[0] + 3 * (1 - t) * t ** 2 * p2[0] + t ** 3 * p3[0],
-            (1 - t) ** 3 * p0[1] + 3 * (1 - t) ** 2 * t * p1[1] + 3 * (1 - t) * t ** 2 * p2[1] + t ** 3 * p3[1]
+            (1 - t) ** 3 * p0[0]
+            + 3 * (1 - t) ** 2 * t * p1[0]
+            + 3 * (1 - t) * t ** 2 * p2[0]
+            + t ** 3 * p3[0],
+            (1 - t) ** 3 * p0[1]
+            + 3 * (1 - t) ** 2 * t * p1[1]
+            + 3 * (1 - t) * t ** 2 * p2[1]
+            + t ** 3 * p3[1],
         )
         for t in [i / steps for i in range(steps + 1)]
     ]
-
 
 class KeyStroke:
     def __init__(self, idx):
@@ -158,10 +166,13 @@ class KeyStroke:
         self.animated_curves.clear()
         for _ in range(3):
             ampl = random.uniform(40, 120)
-            curve = [[
-                self.base_pos[0] + random.uniform(-ampl, ampl),
-                self.base_pos[1] + random.uniform(-ampl, ampl)
-            ] for _ in range(4)]
+            curve = [
+                [
+                    self.base_pos[0] + random.uniform(-ampl, ampl),
+                    self.base_pos[1] + random.uniform(-ampl, ampl),
+                ]
+                for _ in range(4)
+            ]
             self.original_curves.append(curve)
             self.animated_curves.append([p.copy() for p in curve])
 
@@ -175,9 +186,11 @@ class KeyStroke:
             return
         pct = frames_passed / self.duration
         fade = (
-            int(255 * (1 - (pct / fade_time))) if pct < fade_time else
-            int(255 * ((pct - (1 - fade_time)) / fade_time)) if pct > 1 - fade_time else
-            0
+            int(255 * (1 - (pct / fade_time)))
+            if pct < fade_time
+            else int(255 * ((pct - (1 - fade_time)) / fade_time))
+            if pct > 1 - fade_time
+            else 0
         )
         color = (fade, fade, fade)
         for i, original in enumerate(self.original_curves):
@@ -192,8 +205,7 @@ class KeyStroke:
                 shifted = [(x + dx, y + dy) for x, y in points]
                 pygame.draw.aalines(surface, color, False, shifted)
 
-
-# Initialize states for 23 "keys"
+# Initialize states for 23 “keys”
 NUM_KEYS = 23
 keystrokes = [KeyStroke(i) for i in range(NUM_KEYS)]
 
@@ -220,10 +232,18 @@ try:
 
         # ==== Pygame drawing ====
         screen.fill((255, 255, 255))
-        pygame.draw.line(screen, (200, 200, 200), (WIDTH // 2, 0), (WIDTH // 2, HEIGHT), 2)
+        pygame.draw.line(
+            screen, (200, 200, 200), (WIDTH // 2, 0), (WIDTH // 2, HEIGHT), 2
+        )
         font = pygame.font.SysFont(None, 24)
-        screen.blit(font.render("Zona Izquierda", True, (150, 150, 150)), (WIDTH // 4 - 60, 20))
-        screen.blit(font.render("Zona Derecha", True, (150, 150, 150)), (3 * WIDTH // 4 - 60, 20))
+        screen.blit(
+            font.render("Zona Izquierda", True, (150, 150, 150)),
+            (WIDTH // 4 - 60, 20),
+        )
+        screen.blit(
+            font.render("Zona Derecha", True, (150, 150, 150)),
+            (3 * WIDTH // 4 - 60, 20),
+        )
         for k in keystrokes:
             k.update(frame_count, screen)
         pygame.display.flip()
@@ -253,14 +273,13 @@ try:
                     debounced[raw_idx] = True
                     activation_time[raw_idx] = now
 
-                    # Console statement from original sensor code
                     print(f"Touch activated on electrode {disp_idx}")
 
                     # Activate visual bezier for that key
                     if 0 <= disp_idx < NUM_KEYS:
                         keystrokes[disp_idx].activate(frame_count)
 
-                        # Audio: pick a random table and compute pitch
+                        # --- Audio: pick a random table and compute pitch & volume ---
                         table = random.choice(tables)
                         pitch_step = pitch_range / (NUM_KEYS - 1)
                         base_pitch = disp_idx * pitch_step + transpose_semitones
@@ -268,38 +287,54 @@ try:
                         pitch_shift = base_pitch + variation
                         pitch_factor = 2 ** (pitch_shift / 12.0)
 
+                        # Frequency & duration from the sample table
                         freq = table.getRate() * pitch_factor
                         dur = table.getDur() / pitch_factor
 
+                        # Normalize pitch_shift to [0, 1] for volume mapping
+                        norm = pitch_shift / pitch_range
+                        norm = max(0.0, min(norm, 1.0))
+
+                        # Interpolate between min_pitch_volume and max_pitch_volume
+                        volume_factor = min_pitch_volume + norm * (max_pitch_volume - min_pitch_volume)
+
+                        # Pan position across the 23 keys (0.0 = left, 1.0 = right)
                         pan_pos = disp_idx / (NUM_KEYS - 1)
-                        reader = TableRead(table=table, freq=freq, loop=False, mul=0.1 * master_volume)
+
+                        # Create the reader with dynamic volume
+                        reader = TableRead(
+                            table=table,
+                            freq=freq,
+                            loop=False,
+                            mul=volume_factor * master_volume,
+                        )
                         panned = Pan(reader, pan=pan_pos).out()
                         reader.play()
 
+                        # Polyphony handling
                         if len(active_voices) >= max_polyphony:
                             old_r, old_p = active_voices.pop(0)
                             old_r.stop()
                             old_p.stop()
                         active_voices.append((reader, panned))
 
+                        # Schedule the voice to stop after its duration
                         CallAfter(
                             lambda r=reader, p=panned: (
                                 active_voices.remove((r, p)) if (r, p) in active_voices else None,
                                 r.stop(),
-                                p.stop()
+                                p.stop(),
                             ),
-                            dur
+                            dur,
                         )
 
-                    log_event(f"Activated key {disp_idx}")
+                    log_event(f"Activated key {disp_idx} (pitch_shift={pitch_shift:.2f}, vol={volume_factor:.2f})")
 
                 elif not touched and debounced[raw_idx]:
                     debounced[raw_idx] = False
                     hold = now - activation_time.get(raw_idx, now)
 
-                    # Console statement from original sensor code
                     print(f"Touch deactivated on electrode {disp_idx} after {hold:.3f}s hold")
-
                     log_event(f"Deactivated key {disp_idx} after {hold:.3f}s")
 
         # Small sleep to avoid hammering I²C bus
