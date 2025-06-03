@@ -66,7 +66,7 @@ def get_touched(sensors):
 
 
 # --- Master volume variable ---
-master_volume = 0.75  # 0.0 = silent, 1.0 = full
+master_volume = 1.5  # 0.0 = silent, 1.0 = full
 
 # --- Set up Pyo server ---
 s = Server(duplex=0, buffersize=1024).boot().start()
@@ -83,7 +83,7 @@ tables = [SndTable(path) for path in sample_paths]
 
 # --- Background ambience setup (streamed) ---
 ambience_path = "sound/FX.wav"
-ambience_volume = 0.15  # base ambience volume
+ambience_volume = 0.1  # base ambience volume
 ambience_player = SfPlayer(ambience_path, loop=True, mul=ambience_volume * master_volume).out()
 
 # Audio configuration
