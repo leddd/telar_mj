@@ -108,9 +108,9 @@ def log_event(message):
 
 # === Pygame Setup ===
 pygame.init()
-WIDTH, HEIGHT = 1000, 600
+WIDTH, HEIGHT = 2048, 768
 FPS = 60
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
+screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)
 pygame.display.set_caption("Bezier Key Visualizer with Sensor Audio")
 clock = pygame.time.Clock()
 
@@ -194,10 +194,11 @@ try:
         now = time.time()
 
         screen.fill((255, 255, 255))
-        pygame.draw.line(screen, (200, 200, 200), (WIDTH // 2, 0), (WIDTH // 2, HEIGHT), 2)
-        font = pygame.font.SysFont(None, 24)
-        screen.blit(font.render("Zona Izquierda", True, (150, 150, 150)), (WIDTH // 4 - 60, 20))
-        screen.blit(font.render("Zona Derecha", True, (150, 150, 150)), (3 * WIDTH // 4 - 60, 20))
+        # Removed vertical line and text
+        # pygame.draw.line(screen, (200, 200, 200), (WIDTH // 2, 0), (WIDTH // 2, HEIGHT), 2)
+        # font = pygame.font.SysFont(None, 24)
+        # screen.blit(font.render("Zona Izquierda", True, (150, 150, 150)), (WIDTH // 4 - 60, 20))
+        # screen.blit(font.render("Zona Derecha", True, (150, 150, 150)), (3 * WIDTH // 4 - 60, 20))
         for k in keystrokes:
             k.update(frame_count, screen)
         pygame.display.flip()
@@ -206,6 +207,8 @@ try:
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
+                running = False
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 running = False
 
         raw_touches = []
