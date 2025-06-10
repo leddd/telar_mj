@@ -59,6 +59,8 @@ def get_touched(sensors):
 
 # === Audio Configuration ===
 master_volume = 2
+volume_curve = 1  # 0.0 = flat, 1.0 = max curve
+
 s = Server(duplex=0, buffersize=1024).boot().start()
 s.setAmp(master_volume)
 
@@ -155,13 +157,14 @@ class KeyStroke:
         if frames_passed < 0 or frames_passed > self.duration:
             return
         pct = frames_passed / self.duration
-        # Fade from white (255) to black (0)
+        # Fade from white (255) to black (0) at start and end, clamp to [0, 255]
         if pct < fade_time:
             fade = int(255 * (1 - (pct / fade_time)))
         elif pct > 1 - fade_time:
             fade = int(255 * ((1 - pct) / fade_time))
         else:
             fade = 255
+        fade = max(0, min(255, fade))  # Clamp to [0, 255]
         color = (fade, fade, fade)
         for i, original in enumerate(self.original_curves):
             animated = self.animated_curves[i]
@@ -173,7 +176,7 @@ class KeyStroke:
             points = bezier_curve(*animated)
             for dx, dy in [(-0.33, -0.33), (0.33, 0.33), (0, 0)]:
                 shifted = [(x + dx, y + dy) for x, y in points]
-                pygame.draw.lines(surface, color, False, shifted, 4)  # Thicker lines (width=4)
+                pygame.draw.lines(surface, color, False, shifted, 4)
 
 # === Key and Sensor Logic ===
 NUM_KEYS = 23
@@ -240,7 +243,12 @@ try:
                             freq = table.getRate() * pitch_factor
                             dur = table.getDur() / pitch_factor
                             pan_pos = disp_idx / (NUM_KEYS - 1) * 2 - 1
-                            reader = TableRead(table=table, freq=freq, loop=False, mul=0.1 * master_volume)
+
+                            # Volume curve: low notes quieter, high notes louder, controlled by volume_curve
+                            base_vol = 0.1
+                            note_volume = base_vol * (1 + volume_curve * (disp_idx / (NUM_KEYS - 1) - 0.5) * 2)
+
+                            reader = TableRead(table=table, freq=freq, loop=False, mul=note_volume * master_volume)
                             panned = Pan(reader, pan=pan_pos).out()
                             reader.play()
 
