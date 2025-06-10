@@ -135,6 +135,7 @@ def bezier_curve(p0, p1, p2, p3, steps=30):
         for t in [i / steps for i in range(steps + 1)]
     ]
 
+
 class KeyStroke:
     def __init__(self, idx):
         self.idx = idx
