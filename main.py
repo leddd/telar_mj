@@ -59,7 +59,7 @@ def get_touched(sensors):
 
 # === Audio Configuration ===
 master_volume = 2
-volume_curve = 1  # 0.0 = flat, 1.0 = max curve
+volume_curve = 0.8  # 0.0 = flat, 1.0 = max curve
 
 s = Server(duplex=0, buffersize=1024).boot().start()
 s.setAmp(master_volume)
