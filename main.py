@@ -94,14 +94,19 @@ desktop = Path.home() / "Desktop"
 desktop.mkdir(exist_ok=True)
 base_name = "session_log"
 ext = ".txt"
-i = 0
-while True:
-    name = f"{base_name}{'' if i == 0 else f'_{i}'}{ext}"
-    log_path = desktop / name
-    if not log_path.exists():
-        break
-    i += 1
-log_file = open(log_path, "a")
+
+def open_new_log_file():
+    i = 0
+    while True:
+        name = f"{base_name}{'' if i == 0 else f'_{i}'}{ext}"
+        log_path = desktop / name
+        if not log_path.exists():
+            break
+        i += 1
+    return open(log_path, "a"), log_path
+
+log_file, log_path = open_new_log_file()
+log_file_start_time = time.time()
 
 def log_event(message):
     timestamp = datetime.now().strftime(time_format)
@@ -198,6 +203,15 @@ try:
     running = True
     while running:
         now = time.time()
+
+        # Check if 30 minutes have passed since the current log file was opened
+        if now - log_file_start_time >= 1800:
+            log_event("30 minutes passed, rotating log file.")
+            log_file.close()
+            log_file, log_path = open_new_log_file()
+            log_file_start_time = now
+            log_event("Started new log file.")
+
         screen.fill((0, 0, 0))  # Black background
         for k in keystrokes:
             k.update(frame_count, screen)
