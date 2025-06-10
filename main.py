@@ -164,13 +164,8 @@ class KeyStroke:
         if frames_passed < 0 or frames_passed > self.duration:
             return
         pct = frames_passed / self.duration
-        # Fade from white (255) to black (0) at start and end, clamp to [0, 255]
-        if pct < fade_time:
-            fade = int(255 * (1 - (pct / fade_time)))
-        elif pct > 1 - fade_time:
-            fade = int(255 * ((1 - pct) / fade_time))
-        else:
-            fade = 255
+        # Linear fade from white (255) to black (0) over the whole animation
+        fade = int(255 * (1 - pct))
         fade = max(0, min(255, fade))  # Clamp to [0, 255]
         color = (fade, fade, fade)
         for i, original in enumerate(self.original_curves):
