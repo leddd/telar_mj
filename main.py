@@ -1,4 +1,5 @@
 import pygame
+import os
 import math
 import random
 import sys
@@ -110,7 +111,8 @@ def log_event(message):
 pygame.init()
 WIDTH, HEIGHT = 2048, 768
 FPS = 60
-screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)
+os.environ['SDL_VIDEO_WINDOW_POS'] = '0,0'
+screen = pygame.display.set_mode((2048, 768), pygame.NOFRAME)
 pygame.display.set_caption("Bezier Key Visualizer with Sensor Audio")
 clock = pygame.time.Clock()
 
