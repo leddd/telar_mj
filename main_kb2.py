@@ -151,7 +151,7 @@ try:
     while running:
         now = time.time()
         screen.fill((255,255,255))
-        # pygame.draw.line(screen, (200,200,200), (WIDTH//2,0), (WIDTH//2,HEIGHT), 2)
+        #pygame.draw.line(screen, (200,200,200), (WIDTH//2,0), (WIDTH//2,HEIGHT), 2)
         font = pygame.font.SysFont(None,24)
         # Remove these lines:
         # screen.blit(font.render("Zona Izquierda", True, (150,150,150)), (WIDTH//4 - 60,20))
@@ -167,6 +167,8 @@ try:
                 running = False
             elif event.type in (pygame.KEYDOWN, pygame.KEYUP):
                 key_char = pygame.key.name(event.key)
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                    running = False
                 if key_char in key_map:
                     idx = key_map[key_char]
                     touched = (event.type == pygame.KEYDOWN)
