@@ -141,7 +141,7 @@ class KeyStroke:
         self.original_curves.clear()
         self.animated_curves.clear()
         for _ in range(3):
-            ampl = random.uniform(40, 120)
+            ampl = random.uniform(80, 240)
             curve = [[self.base_pos[0] + random.uniform(-ampl, ampl), self.base_pos[1] + random.uniform(-ampl, ampl)] for _ in range(4)]
             self.original_curves.append(curve)
             self.animated_curves.append([p.copy() for p in curve])
