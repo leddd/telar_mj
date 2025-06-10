@@ -155,13 +155,13 @@ class KeyStroke:
         if frames_passed < 0 or frames_passed > self.duration:
             return
         pct = frames_passed / self.duration
-        fade = (
-            int(255 * (1 - (pct / fade_time)))
-            if pct < fade_time
-            else int(255 * ((pct - (1 - fade_time)) / fade_time))
-            if pct > 1 - fade_time
-            else 0
-        )
+        # Fade from white (255) to black (0)
+        if pct < fade_time:
+            fade = int(255 * (1 - (pct / fade_time)))
+        elif pct > 1 - fade_time:
+            fade = int(255 * ((1 - pct) / fade_time))
+        else:
+            fade = 255
         color = (fade, fade, fade)
         for i, original in enumerate(self.original_curves):
             animated = self.animated_curves[i]
@@ -173,7 +173,7 @@ class KeyStroke:
             points = bezier_curve(*animated)
             for dx, dy in [(-0.33, -0.33), (0.33, 0.33), (0, 0)]:
                 shifted = [(x + dx, y + dy) for x, y in points]
-                pygame.draw.aalines(surface, color, False, shifted)
+                pygame.draw.lines(surface, color, False, shifted, 4)  # Thicker lines (width=4)
 
 # === Key and Sensor Logic ===
 NUM_KEYS = 23
@@ -195,13 +195,7 @@ try:
     running = True
     while running:
         now = time.time()
-
-        screen.fill((255, 255, 255))
-        # Removed vertical line and text
-        # pygame.draw.line(screen, (200, 200, 200), (WIDTH // 2, 0), (WIDTH // 2, HEIGHT), 2)
-        # font = pygame.font.SysFont(None, 24)
-        # screen.blit(font.render("Zona Izquierda", True, (150, 150, 150)), (WIDTH // 4 - 60, 20))
-        # screen.blit(font.render("Zona Derecha", True, (150, 150, 150)), (3 * WIDTH // 4 - 60, 20))
+        screen.fill((0, 0, 0))  # Black background
         for k in keystrokes:
             k.update(frame_count, screen)
         pygame.display.flip()
