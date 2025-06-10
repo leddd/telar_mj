@@ -118,6 +118,8 @@ def log_event(message):
 os.environ['SDL_VIDEO_WINDOW_POS'] = '0,0'
 
 pygame.init()
+pygame.mouse.set_visible(False)  # Hide the mouse cursor
+
 WIDTH, HEIGHT = 2048, 768  # Two screens, each 1024 wide
 FPS = 60
 screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.NOFRAME)
