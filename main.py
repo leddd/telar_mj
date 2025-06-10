@@ -58,7 +58,7 @@ def get_touched(sensors):
     return touched
 
 # === Audio Configuration ===
-master_volume = 1.8
+master_volume = 2.5
 s = Server(duplex=0, buffersize=1024).boot().start()
 s.setAmp(master_volume)
 
